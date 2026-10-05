@@ -9,10 +9,15 @@
   <title>Space Coast Sounds — Your day. Your people. Your soundtrack.</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./motion.css">
+  <script defer src="./vendor/gsap/gsap.min.js"></script>
+  <script defer src="./vendor/gsap/ScrollTrigger.min.js"></script>
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
   <script type="module" src="./app.js"></script>
 </head>
 <body>
+  <div class="reading-progress" aria-hidden="true"></div>
+  <div class="room-cursor" aria-hidden="true"><i></i><span>LOOK AROUND</span></div>
   <a class="skip-link" href="#packages">Skip to packages</a>
   <header class="header">
     <a class="brand" href="#top" aria-label="Space Coast Sounds home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>SPACE COAST<br><strong>SOUNDS</strong></span></a>
@@ -23,15 +28,17 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
         <p class="eyebrow"><span class="cross" aria-hidden="true">✦</span> WEDDING DJ & AUDIO · SPACE COAST</p>
-        <h1 id="hero-title">YOUR DAY.<br>YOUR PEOPLE.<br><span>YOUR SOUND.</span></h1>
+        <h1 id="hero-title" aria-label="Your day. Your people. Your sound."><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">YOUR DAY.</span></span><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">YOUR PEOPLE.</span></span><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">YOUR SOUND.</span></span></h1>
         <p class="hero-description">From the first “I do” to the last song.<br>Let’s make it sound like you.</p>
         <div class="hero-actions"><a class="button" href="#contact">Let’s plan your night</a><a class="text-link" href="#packages">Find your package <span aria-hidden="true">+</span></a></div>
         <div class="hero-facts"><div><strong>4 / 6 / 8</strong><span>hours of coverage</span></div><div><strong>ONE GOOD NIGHT</strong><span>your music, your moments</span></div></div>
       </div>
       <div class="stage-shell" id="experience">
+        <div class="stage-aura" aria-hidden="true"></div><div class="drop-ring" aria-hidden="true"></div>
         <div class="stage-top"><span class="stage-label">THE DANCE FLOOR</span><span class="micro">3D SOUND EXPERIENCE</span></div>
         <div id="stage" role="img" aria-label="Interactive concept of a wedding dance floor with dancing figures, a DJ booth, speakers and moving lights"><img class="stage-fallback" src="./assets/venue-concept.png" alt="Imagined dance floor with a DJ booth, tower speakers, guests and colorful lighting"><div class="stage-loading" id="stage-loading">Setting the scene…</div></div>
         <div class="stage-wordmark" aria-hidden="true">SCS <span>01 — AFTER DARK</span></div>
+        <button class="drop-button" id="drop-button" type="button" aria-label="Drop the beat and play original preview audio"><span class="drop-play" aria-hidden="true">▶</span><span>DROP THE BEAT</span><span class="drop-tempo">120 BPM</span></button>
         <div class="stage-controls">
           <div class="mode-switch" role="group" aria-label="Room atmosphere"><button data-mode="ceremony" aria-pressed="false">Ceremony</button><button data-mode="cocktail" aria-pressed="false">Cocktail</button><button data-mode="party" aria-pressed="true">Dance floor</button></div>
           <div class="scene-tools"><button id="sound-toggle" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span></button><button id="motion-toggle" aria-pressed="true" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
@@ -39,7 +46,7 @@
         <p class="stage-note"><span id="stage-hint">Move your cursor to look around</span><span>Concept room · original preview beat</span></p>
       </div>
     </section>
-    <div class="ticker" aria-hidden="true"><div>THE VOWS <span>✦</span> THE TOASTS <span>✦</span> THE FIRST DANCE <span>✦</span> THE LAST SONG <span>✦</span> THE VOWS <span>✦</span> THE TOASTS <span>✦</span> THE FIRST DANCE <span>✦</span> THE LAST SONG <span>✦</span></div></div>
+    <div class="ticker" aria-hidden="true"><div class="ticker-track"><span class="ticker-repeat">GOOD MUSIC. <em>GREAT PEOPLE.</em> ✦ </span><span class="ticker-repeat">GOOD MUSIC. <em>GREAT PEOPLE.</em> ✦ </span></div></div>
     <section class="moments section" aria-labelledby="moments-title">
       <div class="section-intro reveal"><p class="eyebrow">01 / EVERY MOMENT HAS A SOUNDTRACK</p><h2 id="moments-title">Feel the moment.<br><span>We’ll handle the sound.</span></h2></div>
       <div class="moments-grid">
@@ -48,15 +55,16 @@
         <article class="moment reveal"><span class="moment-number">03</span><svg class="moment-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 32V10l22-5v22M18 16l22-5"/><ellipse cx="11" cy="33" rx="7" ry="5"/><ellipse cx="33" cy="28" rx="7" ry="5"/></svg><h3>The all-in.</h3><p>Your entrance, dinner and dancing, with DJ and MC options to match your celebration.</p><span class="moment-tag">RECEPTION PACKAGES</span></article>
       </div>
     </section>
-    <section class="cinematic" aria-labelledby="cinematic-title"><img src="./assets/venue-concept.png" alt="AI-generated concept of a wedding dance floor with speakers, guests, and cyan and lime lights" loading="lazy"><div class="cinematic-copy"><p class="eyebrow">SOME NIGHTS STAY WITH YOU.</p><h2 id="cinematic-title">Make this<br><span>one of them.</span></h2></div><p class="cinematic-caption">IMAGINED VENUE · AI CONCEPT ART</p></section>
+    <section class="cinematic" aria-labelledby="cinematic-title"><div class="cinematic-frame"><img src="./assets/venue-concept.png" alt="AI-generated concept of a wedding dance floor with speakers, guests, and cyan and lime lights" loading="lazy"><div class="cinematic-shade"></div></div><div class="cinematic-copy"><p class="eyebrow">SOME NIGHTS STAY WITH YOU.</p><h2 id="cinematic-title"><span class="cinematic-line">THE NIGHT</span><span class="cinematic-line">IS YOURS.</span></h2><p class="cinematic-subtitle">From the first dance to “one more song.”</p></div><div class="cinematic-track" aria-hidden="true"><span>01 / THE MOMENT</span><i><b></b></i><span>02 / THE MEMORY</span></div><p class="cinematic-caption">IMAGINED VENUE · AI CONCEPT ART</p></section>
     <section class="packages section" id="packages" aria-labelledby="packages-title">
-      <div class="section-heading reveal"><div><p class="eyebrow">02 / FIND YOUR SOUND</p><h2 id="packages-title">Three ways.<br><span>One unforgettable day.</span></h2></div><p>Choose the coverage that fits your celebration.<br>Setup and teardown are included in every package.</p></div>
-      <div class="package-grid">
-        <article class="package-card reveal"><p class="package-kicker">THE RECEPTION</p><h3>Reception<br>Package</h3><p class="price">$800<span>/ up to 4 hours</span></p><p class="package-description">For the entrance, the toasts, and a night on the dance floor.</p><ul><li>Up to 4 hours of DJ service</li><li>Professional sound system</li><li>Wireless microphone for toasts</li><li>Entrance, dinner & dancing music</li><li>Basic MC & announcements</li><li>Pre-wedding planning consultation</li></ul><a class="button button-outline" href="#contact" data-package="Reception">Ask about this package</a><p class="included">Setup & teardown included</p></article>
-        <article class="package-card featured reveal"><p class="package-kicker">FROM VOWS TO THE DANCE FLOOR</p><h3>Ceremony<br>& Reception</h3><p class="price">$1,000<span>/ up to 6 hours</span></p><p class="package-description">The ceremony, cocktail hour, and reception, brought together.</p><ul><li>Up to 6 hours of total coverage</li><li>Ceremony audio & wireless officiant mic</li><li>Cocktail hour music</li><li>Full reception DJ & MC</li><li>Custom music planning</li><li>Timeline coordination</li></ul><a class="button" href="#contact" data-package="Ceremony & Reception">Plan the whole celebration</a><p class="included">Setup & teardown included</p></article>
-        <article class="package-card reveal"><p class="package-kicker">THE FULL DAY</p><h3>All-Day<br>Audio</h3><p class="price">$1,400<span>/ up to 8 hours</span></p><p class="package-description">Extended audio coverage with room for more moments and more setups.</p><ul><li>Up to 8 hours of total coverage</li><li>Ceremony, cocktail hour & reception</li><li>Multiple sound setups</li><li>Additional microphones</li><li>Event coordination support</li></ul><a class="button button-outline" href="#contact" data-package="All-Day Audio">Ask about all-day audio</a><p class="included">Setup & teardown included</p></article>
+      <div class="section-heading reveal"><div><p class="eyebrow">02 / FIND YOUR SOUND</p><h2 id="packages-title">Find your <span>frequency.</span></h2></div><p>Choose your coverage.<br>We’ll take care of setup and teardown.</p></div>
+      <div class="comparison-board" id="comparison-board">
+        <div class="comparison-top"><span class="comparison-label">THE LINEUP</span><span class="comparison-top-note">SELECT A PACKAGE TO PLAN YOUR NIGHT</span></div>
+        <div class="mobile-tier-picker" role="group" aria-label="Compare a package"><span class="tier-indicator" aria-hidden="true"></span><button data-tier="0" aria-pressed="false">Reception</button><button data-tier="1" aria-pressed="true">Ceremony + Reception</button><button data-tier="2" aria-pressed="false">All-day</button></div>
+        <div class="comparison-scroll"><table class="comparison-table"><caption class="sr-only">Space Coast Sounds wedding package feature comparison. Details from the supplied package sheet.</caption><thead id="comparison-head"></thead><tbody id="comparison-body"></tbody></table></div>
+        <div class="comparison-footer"><div><p class="shared-inclusion"><span aria-hidden="true">✓</span> Setup & teardown included. Every package.</p><p class="comparison-key">— Not specified on the package sheet. Ask us to confirm.</p></div><a class="button comparison-cta" href="#contact" id="comparison-cta" data-package="Ceremony & Reception"><span>Plan my celebration</span><span aria-hidden="true">+</span></a></div>
       </div>
-      <details class="matrix reveal" open><summary><span>Compare every detail</span><span class="matrix-toggle" aria-hidden="true">+</span></summary><div class="table-wrap" tabindex="0" role="region" aria-label="Package feature comparison. Scroll horizontally on smaller screens."><table><caption class="sr-only">Features stated on the supplied Space Coast Sounds package sheet</caption><thead><tr><th scope="col">What’s included</th><th scope="col">Reception<span>$800</span></th><th scope="col" class="selected-col">Ceremony & Reception<span>$1,000</span></th><th scope="col">All-Day Audio<span>$1,400</span></th></tr></thead><tbody id="matrix-body"></tbody></table></div><p class="matrix-note">Based on the supplied package sheet. “Not listed” means the sheet does not specify it; please confirm details when you inquire.</p></details>
+      <details class="package-source"><summary>See full package inclusions <span aria-hidden="true">+</span></summary><div class="package-source-grid" id="package-source-grid"></div><p>Details from the supplied package sheet. Packages are not assumed to inherit every feature from another tier.</p></details>
     </section>
     <section class="music-section section" aria-labelledby="music-title">
       <div class="music-copy reveal"><p class="eyebrow">03 / MAKE IT YOURS</p><h2 id="music-title">Good music.<br><span>Your kind of good.</span></h2><p>A few must-plays. A few absolutely-nots.<br>Tell us what makes your people move.</p><div class="waveform" aria-hidden="true"></div><p class="micro">YOUR MUSIC BRIEF, READY FOR THE DJ</p></div>

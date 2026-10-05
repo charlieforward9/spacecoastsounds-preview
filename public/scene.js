@@ -17,10 +17,11 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x0b171b, .022);
   const camera = new THREE.PerspectiveCamera(39, 1, .1, 100);
-  camera.position.set(12, 13, 22);
+  camera.position.set(11, 11, 20);
   const lookAt = new THREE.Vector3(0, .3, -.35);
   const pointer = new THREE.Vector2();
-  let moving = !reducedMotion, visible = true, elapsed = 0, last = performance.now(), mode = 'party', audioBeat = 0;
+  let moving = !reducedMotion, visible = true, elapsed = 0, last = performance.now(), mode = 'party', audioBeat = 0, scrollProgress = 0, dropStarted = -100;
+  const cameraTarget=new THREE.Vector3();
   let disposed = false, animationId, needsRender = true;
   const root = new THREE.Group(); scene.add(root);
   scene.add(new THREE.HemisphereLight(0xb9edff, 0x303c33, 1.4));
@@ -65,6 +66,9 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   }
   // Inlaid LED floor guides; fine and restrained rather than flashing.
   const grid = new THREE.GridHelper(9.4, 12, 0x5a8374, 0x344f4f); grid.position.y = .006; root.add(grid);
+  const soundRings=[];
+  const waveGeometry=new THREE.RingGeometry(.99,1,72);
+  for(let i=0;i<4;i++){const material=new THREE.MeshBasicMaterial({color:0xaef5a0,transparent:true,opacity:.13,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});const ring=new THREE.Mesh(waveGeometry,material);ring.rotation.x=-Math.PI/2;ring.position.set(0,.017,.2);root.add(ring);soundRings.push(ring);}
   box(9.3, .04, .035, materials.lime, 0, .015, 4.7);
   box(.035, .04, 9.35, materials.cyan, -4.65, .015, 0);
   box(.035, .04, 9.35, materials.cyan, 4.65, .015, 0);
@@ -131,15 +135,15 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   function updateCrowd(t) {
     const energy=mode==='party'?1:mode==='cocktail'?.3:.1;
     dancers.forEach((d,i)=>{
-      const phase=t*(mode==='party'?3.4:1.2)+d.phase;
-      const sway=Math.sin(phase)*.045*energy,bob=(Math.sin(phase*2)+1)*.025*energy,h=d.height;
-      setInstance(bodies,i,d.x+sway,.82*h+bob,d.z,.91,h,1,Math.sin(phase)*.08*energy,d.turn);
+      const phase=t*(mode==='party'?Math.PI*2:1.2)+d.phase;
+      const sway=Math.sin(phase)*.115*energy,bob=(Math.sin(phase*2)+1)*.043*energy,h=d.height;
+      setInstance(bodies,i,d.x+sway,.82*h+bob,d.z,.91,h,1,Math.sin(phase)*.16*energy,d.turn+Math.sin(phase*.5)*.12*energy);
       setInstance(heads,i,d.x+sway*1.5,1.25*h+bob,d.z,1,h,1,0,d.turn);
       for(let side=0;side<2;side++){
-        const sign=side?1:-1,raised=d.pose>.48&&mode==='party',lift=raised?.19:.0;
-        const angle=sign*(raised?.62:.16)+Math.cos(phase+side)*.2*energy;
+        const sign=side?1:-1,raised=d.pose>.48&&mode==='party',lift=raised?.23:.0;
+        const angle=sign*(raised?.92:.16)+Math.cos(phase+side)*.32*energy;
         setInstance(arms,i*2+side,d.x+sign*.25+sway,.85*h+bob+lift,d.z,.94,h,.94,angle,d.turn);
-        setInstance(legs,i*2+side,d.x+sign*.103+sway*.4,.29*h,d.z+Math.sin(phase+side*Math.PI)*.035*energy,1,h,1,sign*.05+Math.sin(phase)*.06*energy,d.turn);
+        setInstance(legs,i*2+side,d.x+sign*.103+sway*.4,.29*h,d.z+Math.sin(phase+side*Math.PI)*.075*energy,1,h,1,sign*.05+Math.sin(phase)*.11*energy,d.turn);
       }
     });[bodies,heads,arms,legs].forEach(mesh=>mesh.instanceMatrix.needsUpdate=true);
   }
@@ -176,18 +180,27 @@ export function createRoom(container, { reducedMotion = false } = {}) {
     if(!visible||document.hidden||(!moving&&!needsRender))return;
     needsRender=false;
     if(moving)elapsed+=dt;
-    const mobile=camera.aspect<.95, baseDistance=mobile?24:22;
-    const targetX=(mobile?11:12)+pointer.x*1.5,targetY=13+pointer.y*.65;
-    camera.position.lerp(new THREE.Vector3(targetX,targetY,baseDistance-pointer.x*.4),moving?.04:1);camera.lookAt(lookAt);
+    const framing=Math.max(0,1.2-camera.aspect)*8,dropAge=elapsed-dropStarted;
+    const dropAmount=dropAge>=0&&dropAge<5?Math.sin(dropAge/5*Math.PI):0;
+    const preset=mode==='ceremony'?[9.5,12,21]:mode==='cocktail'?[13.5,9.5,21]:[11,11,20];
+    const orbit=moving?Math.sin(elapsed*.22)*1.05:0;
+    cameraTarget.set(preset[0]+pointer.x*2.7+orbit,preset[1]+pointer.y*1.25-scrollProgress*.8,preset[2]+framing-pointer.x*.8);
+    cameraTarget.x=THREE.MathUtils.lerp(cameraTarget.x,1.5,dropAmount*.82);
+    cameraTarget.y=THREE.MathUtils.lerp(cameraTarget.y,6.5,dropAmount*.82);
+    cameraTarget.z=THREE.MathUtils.lerp(cameraTarget.z,16.5+framing*.7,dropAmount*.82);
+    camera.position.lerp(cameraTarget,moving?1-Math.exp(-dt*5):1);camera.lookAt(lookAt);
     ledMaterial.uniforms.time.value=elapsed;
     updateCrowd(elapsed);
-    root.rotation.y=Math.sin(elapsed*.12)*.06;
-    equalizer.forEach((bar,i)=>{bar.scale.y=.3+Math.abs(Math.sin(elapsed*2.3+i*.6)*Math.cos(elapsed*.8+i*.4))*(mode==='party'?1.6:.7);});
-    const pulse=Math.pow(Math.max(0,Math.sin(elapsed*7.1)),8)*.2+audioBeat*.15;
-    for(const cone of speakerCones)cone.scale.setScalar(1+(moving?pulse*.045:0));
+    root.rotation.y=Math.sin(elapsed*.15)*.11;
+    equalizer.forEach((bar,i)=>{bar.scale.y=.3+Math.abs(Math.sin(elapsed*3.3+i*.6)*Math.cos(elapsed*.8+i*.4))*(mode==='party'?1.8:.7)+audioBeat*.35;});
+    const pulse=Math.pow(Math.max(0,Math.sin(elapsed*Math.PI*4)),4)*.09+audioBeat*.28;
+    for(const cone of speakerCones)cone.scale.setScalar(1+(moving?pulse*.12:0));
+    soundRings.forEach((ring,i)=>{const phase=(elapsed*.36+i*.25)%1;ring.scale.setScalar(.3+phase*4.6);ring.material.opacity=(1-phase)*.14*(mode==='party'?1:.35);});
     beams.forEach((beam,i)=>{const energy=mode==='party'?1:.2;beam.rotation.z=(i<2?-1:1)*(.35+Math.sin(elapsed*.35+i*1.5)*.2*energy);beam.rotation.x=.2+Math.sin(elapsed*.27+i)*.22*energy;});
-    fill.intensity=(mode==='party'?16:12)+(moving?pulse*4:0);
+    fill.intensity=(mode==='party'?16:12)+(moving?pulse*5+dropAmount*5:0);
+    bloom.strength=.38+dropAmount*.13;
     composer.render();
+    audioBeat*=Math.exp(-dt*7);
   }
   updateCrowd(0);animate(performance.now());
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();container.closest('.stage-shell').classList.remove('ready');document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';});
@@ -195,7 +208,9 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   return {
     setMode(value){mode=value;needsRender=true;const tint=value==='ceremony'?0xffd89b:value==='cocktail'?0x87e1ef:0xcefa69;materials.lime.color.setHex(tint);beamMaterial.color.setHex(tint);fill.color.setHex(tint);ledMaterial.uniforms.tint.value.setHex(value==='ceremony'?0xf3d7a4:0x91e6f5);},
     setMotion(value){moving=value;needsRender=true;pointer.set(0,0);},
-    setBeat(value){audioBeat=value;},
+    setBeat(value){if(moving)audioBeat=value;},
+    setScroll(value){scrollProgress=value;},
+    drop(){if(moving){dropStarted=elapsed;needsRender=true;}},
     getStats(){return {triangles:renderer.info.render.triangles,drawCalls:renderer.info.render.calls,crowd:count,webgl:true,mode,moving};},
     dispose(){disposed=true;cancelAnimationFrame(animationId);resizeObserver.disconnect();visibilityObserver.disconnect();renderer.dispose();composer.dispose();}
   };

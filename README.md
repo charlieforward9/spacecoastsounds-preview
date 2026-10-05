@@ -1,6 +1,6 @@
 # Space Coast Sounds website concept
 
-A standalone wedding DJ website with an interactive Three.js dance-floor room, a package feature matrix, optional original synthesized audio, a music preference selector, a demo inquiry form, and the owner's Instagram link.
+A standalone wedding DJ website with an interactive Three.js dance-floor room, animated package comparison, optional original synthesized audio, a music preference selector, a demo inquiry form, and the owner's Instagram link.
 
 ## Run locally
 
@@ -24,17 +24,20 @@ For local-only use, set `apiBase` to an empty string. To use another tunnel, rep
 
 The form clearly identifies itself as a preview and requests sample details. It does not forward leads to Space Coast Sounds or confirm bookings. Connect the form to the owner's approved receiving email or production lead service, configure spam protection and retention, and update the confirmation copy before collecting real customer inquiries.
 
-Confirm all prices and inclusions with the owner. The package comparison follows the supplied sheet and uses “Not listed” for unspecified features. The site does not infer that expensive packages inherit every feature. The personal discount negotiation is outside this repository and is not advertised on the public sample.
+Confirm all prices and inclusions with the owner. The eight-row package comparison follows the supplied sheet and uses an em dash for unspecified features. Full source inclusions are available below it. The site does not infer that expensive packages inherit every feature. The personal discount negotiation is outside this repository and is not advertised on the public sample.
 
 The room is a procedural, imagined 3D venue with abstract figures. The cinematic image and fallback are AI-generated concept artwork, not photography from a real Space Coast Sounds event. There are no invented reviews, clients, awards, bookings, or availability claims. The music preference selector uses authored directions; it is not an AI chatbot.
 
 ## Included assets
 
 - Three.js 0.186.1 and official postprocessing modules: MIT license in `public/vendor/THREE-LICENSE.txt`.
+- GSAP and ScrollTrigger 3.15.0: vendored official distributions with their original notices; [GSAP Standard License](https://gsap.com/standard-license/).
 - Space Grotesk: SIL Open Font License, included alongside the local font.
 - Original concept image: generated with the built-in imagegen tool; prompt in `ASSET-PROMPT.md`.
 - Original synthesized preview beat: browser Web Audio, muted until enabled.
 
 ## Motion and fallback
 
-The 34-person crowd uses instanced geometry. The scene pauses its rendering when outside the viewport or when the document is hidden. It respects reduced-motion preferences and includes a pause control. Audio stops when the page becomes hidden. WebGL failure displays the concept artwork; no package or form functionality depends on WebGL.
+Motion includes masked character entrances, a moving marquee, scroll reveals, a pinned cinematic image sequence on desktop, image parallax on phones, magnetic buttons, pointer camera movement, and an audio-reactive beat drop. The comparison highlights the selected package and synchronizes the inquiry form; phones show one selected package beside the feature labels with a sliding tier selector.
+
+The 34-person crowd uses instanced geometry. The scene pauses its rendering when outside the viewport or when the document is hidden. It respects reduced-motion preferences and includes a pause control that also reverts GSAP animations and scroll pinning. Audio stops when the page becomes hidden. WebGL failure displays the concept artwork; no package or form functionality depends on WebGL.
