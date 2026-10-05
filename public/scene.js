@@ -21,7 +21,7 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   const lookAt = new THREE.Vector3(0, .3, -.35);
   const pointer = new THREE.Vector2();
   let moving = !reducedMotion, visible = true, elapsed = 0, last = performance.now(), mode = 'party', audioBeat = 0;
-  let disposed = false, animationId;
+  let disposed = false, animationId, needsRender = true;
   const root = new THREE.Group(); scene.add(root);
   scene.add(new THREE.HemisphereLight(0xb9edff, 0x303c33, 1.4));
   const key = new THREE.DirectionalLight(0xd2edff, 2); key.position.set(5, 12, 8); scene.add(key);
@@ -75,6 +75,7 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   box(4.03, .12, 1.06, materials.steel, 0, 1.45, 0, booth);
   for (const x of [-1.82, 1.82]) box(.035, 1.05, .03, materials.lime, x, .85, .47, booth);
   box(3.62, .028, .025, materials.lime, 0, .32, .47, booth);
+  const equalizer=[];for(let i=0;i<23;i++){const bar=box(.067,.35,.025,i%3===0?materials.cyan:materials.lime,-1.45+i*.132,.76,.476,booth);equalizer.push(bar);}
   for (const x of [-1.1, 1.1]) {
     box(1, .05, .67, materials.black, x, 1.54, 0, booth);
     cylinder(.28, .28, .027, materials.steel, x, 1.58, 0, booth);
@@ -164,21 +165,24 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   const starGeometry=new THREE.BufferGeometry();starGeometry.setAttribute('position',new THREE.BufferAttribute(positions,3));scene.add(new THREE.Points(starGeometry,new THREE.PointsMaterial({color:0xafdce7,size:.028,transparent:true,opacity:.7,depthWrite:false})));
   const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
   const bloom=new UnrealBloomPass(new THREE.Vector2(800,600),.38,.55,.78);composer.addPass(bloom);composer.addPass(new OutputPass());
-  function resize(){const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;renderer.setSize(w,h);composer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  function resize(){const w=container.clientWidth,h=container.clientHeight;if(!w||!h)return;renderer.setSize(w,h);composer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();needsRender=true;}
   const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(container);resize();
-  const visibilityObserver=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;last=performance.now();},{rootMargin:'100px'});visibilityObserver.observe(container);
-  function onPointer(event){if(event.pointerType==='touch')return;const rect=container.getBoundingClientRect();pointer.set(((event.clientX-rect.left)/rect.width-.5)*2,((event.clientY-rect.top)/rect.height-.5)*2);}
+  const visibilityObserver=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;last=performance.now();needsRender=true;},{rootMargin:'100px'});visibilityObserver.observe(container);
+  function onPointer(event){if(event.pointerType==='touch'||!moving)return;const rect=container.getBoundingClientRect();pointer.set(((event.clientX-rect.left)/rect.width-.5)*2,((event.clientY-rect.top)/rect.height-.5)*2);}
   container.addEventListener('pointermove',onPointer);container.addEventListener('pointerleave',()=>pointer.set(0,0));
   function animate(now){
     if(disposed)return;animationId=requestAnimationFrame(animate);
     const dt=Math.min((now-last)/1000,.05);last=now;
-    if(!visible||document.hidden)return;
+    if(!visible||document.hidden||(!moving&&!needsRender))return;
+    needsRender=false;
     if(moving)elapsed+=dt;
     const mobile=camera.aspect<.95, baseDistance=mobile?24:22;
     const targetX=(mobile?11:12)+pointer.x*1.5,targetY=13+pointer.y*.65;
     camera.position.lerp(new THREE.Vector3(targetX,targetY,baseDistance-pointer.x*.4),moving?.04:1);camera.lookAt(lookAt);
     ledMaterial.uniforms.time.value=elapsed;
     updateCrowd(elapsed);
+    root.rotation.y=Math.sin(elapsed*.12)*.06;
+    equalizer.forEach((bar,i)=>{bar.scale.y=.3+Math.abs(Math.sin(elapsed*2.3+i*.6)*Math.cos(elapsed*.8+i*.4))*(mode==='party'?1.6:.7);});
     const pulse=Math.pow(Math.max(0,Math.sin(elapsed*7.1)),8)*.2+audioBeat*.15;
     for(const cone of speakerCones)cone.scale.setScalar(1+(moving?pulse*.045:0));
     beams.forEach((beam,i)=>{const energy=mode==='party'?1:.2;beam.rotation.z=(i<2?-1:1)*(.35+Math.sin(elapsed*.35+i*1.5)*.2*energy);beam.rotation.x=.2+Math.sin(elapsed*.27+i)*.22*energy;});
@@ -189,8 +193,8 @@ export function createRoom(container, { reducedMotion = false } = {}) {
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();container.closest('.stage-shell').classList.remove('ready');document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';});
   renderer.domElement.addEventListener('webglcontextrestored',()=>{resize();container.closest('.stage-shell').classList.add('ready');});
   return {
-    setMode(value){mode=value;const tint=value==='ceremony'?0xffd89b:value==='cocktail'?0x87e1ef:0xcefa69;materials.lime.color.setHex(tint);beamMaterial.color.setHex(tint);fill.color.setHex(tint);ledMaterial.uniforms.tint.value.setHex(value==='ceremony'?0xf3d7a4:0x91e6f5);},
-    setMotion(value){moving=value;pointer.set(0,0);},
+    setMode(value){mode=value;needsRender=true;const tint=value==='ceremony'?0xffd89b:value==='cocktail'?0x87e1ef:0xcefa69;materials.lime.color.setHex(tint);beamMaterial.color.setHex(tint);fill.color.setHex(tint);ledMaterial.uniforms.tint.value.setHex(value==='ceremony'?0xf3d7a4:0x91e6f5);},
+    setMotion(value){moving=value;needsRender=true;pointer.set(0,0);},
     setBeat(value){audioBeat=value;},
     getStats(){return {triangles:renderer.info.render.triangles,drawCalls:renderer.info.render.calls,crowd:count,webgl:true,mode,moving};},
     dispose(){disposed=true;cancelAnimationFrame(animationId);resizeObserver.disconnect();visibilityObserver.disconnect();renderer.dispose();composer.dispose();}
