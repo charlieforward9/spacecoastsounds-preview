@@ -26,7 +26,7 @@ The form clearly identifies itself as a preview and requests sample details. It 
 
 Confirm all prices and inclusions with the owner. The package comparison follows the supplied sheet and uses “Not listed” for unspecified features. The site does not infer that expensive packages inherit every feature. The personal discount negotiation is outside this repository and is not advertised on the public sample.
 
-The room is a procedural, imagined 3D venue with abstract figures. The fallback is AI-generated concept artwork, not photography from a real Space Coast Sounds event. There are no invented reviews, clients, awards, bookings, or availability claims. The music preference selector uses authored directions; it is not an AI chatbot.
+The room is a procedural, imagined 3D venue with abstract figures. The cinematic image and fallback are AI-generated concept artwork, not photography from a real Space Coast Sounds event. There are no invented reviews, clients, awards, bookings, or availability claims. The music preference selector uses authored directions; it is not an AI chatbot.
 
 ## Included assets
 
