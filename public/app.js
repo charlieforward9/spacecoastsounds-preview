@@ -1,5 +1,5 @@
-import { mountComparison } from './comparison.js';
-import { createMotionSystem } from './motion.js';
+import { mountComparison } from './comparison.js?v=20261005-motion';
+import { createMotionSystem } from './motion.js?v=20261005-motion';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let room, motion = !reducedMotion.matches, motionSystem, currentMode = 'party';
 const comparison = mountComparison();
@@ -11,7 +11,7 @@ function changeMode(mode){currentMode=mode;document.querySelectorAll('[data-mode
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
 document.getElementById('comparison-board').addEventListener('tierchange',event=>changeMode(event.detail.index===1?'ceremony':'party'));
 if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Choose a mood to change the room';
-async function initRoom(){try{const {createRoom}=await import('./scene.js');room=createRoom(document.getElementById('stage'),{reducedMotion:!motion});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable; displaying concept artwork.',error);document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';document.getElementById('stage-hint').textContent='Original venue concept artwork';document.querySelectorAll('[data-mode]').forEach(button=>button.disabled=true);}}
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-motion');room=createRoom(document.getElementById('stage'),{reducedMotion:!motion});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable; displaying concept artwork.',error);document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';document.getElementById('stage-hint').textContent='Original venue concept artwork';document.querySelectorAll('[data-mode]').forEach(button=>button.disabled=true);}}
 initRoom();
 motionSystem=createMotionSystem({getRoom:()=>room,isEnabled:()=>motion});
 // An original, synthesized preview beat. No autoplay or copyrighted audio.
