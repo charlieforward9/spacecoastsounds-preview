@@ -2,11 +2,15 @@ import * as THREE from 'three';
 // Small deterministic PBR textures generated from geometry/material code, not AI images.
 export function surfaceTexture(kind='stone',size=128){
   const data=new Uint8Array(size*size*4);
+  const intRow=y=>Math.floor(y/16);
   const noise=(x,y)=>{const value=Math.sin(x*127.1+y*311.7)*43758.5453;return value-Math.floor(value);};
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
     const n=noise(x,y);let value;
     if(kind==='wood'){const grain=Math.sin(y*.37+Math.sin(x*.03)*2.4+Math.sin(x*.16)*.4);value=195+grain*22+(n-.5)*16;if(y%32<1||((y>>5)%2?x:x+size/2)%size<1)value*=.50;}
     else if(kind==='fabric')value=190+(((x+y)%2)?16:-16)+(n-.5)*17;
+    else if(kind==='bark')value=130+Math.sin(x*.40+Math.sin(y*.05)*2)*40+(n-.5)*25;
+    else if(kind==='thatch')value=150+Math.sin(x*1.8+Math.sin(y*.11)*.8)*35+(n-.5)*55;
+    else if(kind==='brick'){value=200+(n-.5)*26;if(y%16<1||(x+(intRow(y)%2)*32)%64<2)value=130;}
     else if(kind==='metal')value=220+Math.sin(y*2.1)*12+(n-.5)*14;
     else value=220+Math.sin(x*.055+y*.018+Math.sin(y*.07)*1.7)*10+(n-.5)*20;
     const i=(y*size+x)*4;data[i]=data[i+1]=data[i+2]=Math.max(0,Math.min(255,value));data[i+3]=255;
@@ -21,8 +25,12 @@ export function grilleTexture(size=128){
 export function createMaterials(){
   const fabric=surfaceTexture('fabric'),stone=surfaceTexture('stone'),wood=surfaceTexture('wood'),metal=surfaceTexture('metal');
   wood.repeat.set(5,7);stone.repeat.set(4,5);fabric.repeat.set(3,3);metal.repeat.set(2,3);
+  const bark=surfaceTexture('bark'),thatch=surfaceTexture('thatch'),brick=surfaceTexture('brick');bark.repeat.set(2,3);thatch.repeat.set(18,9);brick.repeat.set(3,8);
   const mat=(color,options={})=>new THREE.MeshStandardMaterial({color,roughness:.65,...options});
   return {
+    grass:mat(0x86966d,{map:stone,roughness:.94}),gravel:mat(0xc5bba7,{map:stone,bumpMap:stone,bumpScale:.020,roughness:.94}),
+    bark:mat(0x8a7660,{map:bark,bumpMap:bark,bumpScale:.027,roughness:.92}),thatch:mat(0x9f8357,{map:thatch,bumpMap:thatch,bumpScale:.035,roughness:.98,side:THREE.DoubleSide}),brick:mat(0x943d30,{map:brick,bumpMap:brick,bumpScale:.018,roughness:.86}),
+    foliage:mat(0x718754,{side:THREE.DoubleSide,roughness:.86}),
     ivory:mat(0xf8f8f2,{map:stone,bumpMap:stone,bumpScale:.004}),
     stone:mat(0xdce2da,{map:stone,bumpMap:stone,bumpScale:.008,roughness:.36}),
     wood:mat(0x634735,{map:wood,bumpMap:wood,bumpScale:.012,roughness:.40}),

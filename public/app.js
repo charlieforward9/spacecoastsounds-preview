@@ -1,8 +1,8 @@
-import { mountComparison } from './comparison.js?v=20261005-sound';
-import { createSceneAudio } from './audio.js?v=20261005-sound';
-import { createMotionSystem } from './motion.js?v=20261005-sound';
+import { mountComparison } from './comparison.js?v=20261005-jupiter';
+import { createSceneAudio } from './audio.js?v=20261005-jupiter';
+import { createMotionSystem } from './motion.js?v=20261005-jupiter';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let room, audio, motion = !reducedMotion.matches, motionSystem, currentMode = 'party';
+let room, audio, motion = !reducedMotion.matches, motionSystem, currentMode = 'ceremony';
 const comparison = mountComparison();
 const motionButton=document.getElementById('motion-toggle');
 function setMotion(value){motion=value;comparison.setMotion(value);audio?.setMeterEnabled(value);room?.setMotion(value);motionSystem?.setEnabled(value);document.documentElement.classList.toggle('motion-paused',!value);motionButton.setAttribute('aria-pressed',String(value));motionButton.setAttribute('aria-label',value?'Pause motion':'Resume motion');motionButton.innerHTML=value?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 12 7-12 7Z"/></svg>';}
@@ -11,14 +11,14 @@ function changeMode(mode){
   currentMode=mode;
   document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===mode)));
   room?.setMode(mode);audio?.setMode(mode);
-  const shell=document.querySelector('.stage-shell');shell.dataset.scene=mode;document.documentElement.dataset.scene=mode;document.querySelector('meta[name=theme-color]').content={ceremony:'#f5f5f0',cocktail:'#c7b0a4',party:'#080d18'}[mode];
-  document.getElementById('scene-name').textContent={ceremony:'CEREMONY',cocktail:'COCKTAIL HOUR',party:'DANCE FLOOR'}[mode];
+  const shell=document.querySelector('.stage-shell');shell.dataset.scene=mode;document.documentElement.dataset.scene=mode;document.querySelector('meta[name=theme-color]').content={ceremony:'#f5f5f0',cocktail:'#dcc4a3',party:'#080d18'}[mode];
+  document.getElementById('scene-name').textContent={ceremony:'JUPITER LIGHTHOUSE',cocktail:'TAYLOR BEACH HOUSE · SUNSET',party:'TAYLOR BEACH HOUSE · NIGHT'}[mode];
   document.getElementById('drop-button').hidden=mode!=='party';
   motionSystem?.sceneChange();
 }
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
 if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Tap a scene to explore';
-async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-sound');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view unavailable on this device';document.getElementById('stage-hint').textContent='Explore the packages below';}}
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-jupiter');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,intro:scrollY<150});room.setMode(currentMode);room.setMotion(motion);const shell=document.querySelector('.stage-shell');shell.classList.add('ready');if(currentMode==='ceremony'&&scrollY<150&&motion)shell.classList.add('intro-active');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view unavailable on this device';document.getElementById('stage-hint').textContent='Explore the packages below';}}
 initRoom();
 motionSystem=createMotionSystem({getRoom:()=>room,isEnabled:()=>motion});
 audio=createSceneAudio({button:document.getElementById('sound-toggle'),stage:document.getElementById('stage'),initialMode:currentMode,onEnergy:value=>room?.setBeat(value)});

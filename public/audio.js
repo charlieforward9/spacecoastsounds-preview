@@ -1,6 +1,6 @@
-import {SCENES,TRANSITION_SECONDS,equalPowerMix} from './blend.js?v=20261005-sound';
+import {SCENES,TRANSITION_SECONDS,equalPowerMix} from './blend.js?v=20261005-jupiter';
 const files=['ceremony','cocktail','dance-floor'];
-export function createSceneAudio({button,onEnergy=()=>{},initialMode='party',stage}){
+export function createSceneAudio({button,onEnergy=()=>{},initialMode='ceremony',stage}){
   let mode=initialMode,requested=true,context,master,analyser,gains,sources,ready,error=false,loaded=false,unlocked=false,meterTimer,stageVisible=true,meterEnabled=true,lastPulse=0,previousEnergy=0;
   let mix={from:SCENES.map(name=>name===mode?1:0),index:SCENES.indexOf(mode),start:0,duration:0};
   const level=.33;

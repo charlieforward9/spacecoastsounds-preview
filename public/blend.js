@@ -8,7 +8,7 @@ export function equalPowerMix(from,index,progress){
   return from.map((value,i)=>Math.max(0,a*value+(i===index?b:0)));
 }
 export class SceneBlend {
-  constructor(mode='party',duration=TRANSITION_SECONDS){this.mode=mode;this.duration=duration;this.progress=1;this.weights=SCENES.map(name=>name===mode?1:0);this.from=[...this.weights];}
+  constructor(mode='ceremony',duration=TRANSITION_SECONDS){this.mode=mode;this.duration=duration;this.progress=1;this.weights=SCENES.map(name=>name===mode?1:0);this.from=[...this.weights];}
   select(mode,animate=true){if(!SCENES.includes(mode)||mode===this.mode)return false;this.previous=this.mode;this.from=[...this.weights];this.mode=mode;this.progress=0;if(!animate)this.finish();return true;}
   update(dt){if(this.progress===1)return;this.progress=Math.min(1,this.progress+Math.max(0,dt)/this.duration);this.weights=equalPowerMix(this.from,SCENES.indexOf(this.mode),this.progress);}
   finish(){this.progress=1;this.weights=SCENES.map(name=>name===this.mode?1:0);this.from=[...this.weights];}

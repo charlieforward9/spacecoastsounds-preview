@@ -1,7 +1,7 @@
 /* Let the venue lead. Prices appear once. */
 :root { --landing-bg:#080d18; --landing-ink:#ecf2ff; --landing-muted:#94a2ba; --landing-accent:#b5d9ff; --stage-bg:radial-gradient(ellipse at 50% 44%,#232640,#111927 62%,#080d18); --stage-line:#343b52; --control-bg:#101a2ee0; --control-active:#d6e8ff; --control-ink:#0d1830; }
 html[data-scene=ceremony] { --landing-bg:#f5f5f0; --landing-ink:#202922; --landing-muted:#687267; --landing-accent:#446947; --stage-bg:radial-gradient(ellipse at 50% 40%,#fff,#ebeee5 62%,#f5f5f0); --stage-line:#d4dacd; --control-bg:#ffffffdb; --control-active:#314936; --control-ink:#f8fff5; }
-html[data-scene=cocktail] { --landing-bg:#c7b0a4; --landing-ink:#302a2b; --landing-muted:#66565b; --landing-accent:#70494e; --stage-bg:radial-gradient(ellipse at 50% 40%,#dbc0b2,#bba19a 62%,#c7b0a4); --stage-line:#ab8e88; --control-bg:#e8d6cde0; --control-active:#6e4f59; --control-ink:#fff5ed; }
+html[data-scene=cocktail] { --landing-bg:#dcc4a3; --landing-ink:#302a2b; --landing-muted:#66565b; --landing-accent:#70494e; --stage-bg:radial-gradient(ellipse at 50% 40%,#dbc0b2,#bba19a 62%,#c7b0a4); --stage-line:#ab8e88; --control-bg:#e8d6cde0; --control-active:#6e4f59; --control-ink:#fff5ed; }
 html { scroll-padding-top:76px; }
 .header { height:64px; max-width:none; background:var(--landing-bg); color:var(--landing-ink); border-color:var(--stage-line); backdrop-filter:none; transition:background .65s,color .65s,border-color .65s; }
 .header nav { color:var(--landing-muted); font-size:11px; gap:25px; }
@@ -197,3 +197,14 @@ footer { max-width:1050px; margin:auto; padding:22px 4.5% 30px; font-size:10px; 
 
 .feature-summary { position:relative; }
 @media (max-width:760px) { .feature-label { top:5px; left:7px; } }
+
+/* A quiet opening over the lighthouse view. */
+.venue-intro { position:absolute; left:50%; top:57%; transform:translate(-50%,-50%); z-index:3; color:#fffaf1; text-align:center; pointer-events:none; opacity:0; white-space:nowrap; text-shadow:0 1px 18px #172c3150; }
+.venue-intro span { font-size:clamp(18px,2vw,31px); font-weight:400; letter-spacing:.08em; }
+.venue-intro i { display:block; height:1px; width:100%; background:linear-gradient(90deg,transparent,#fffaf1,transparent); margin-top:17px; transform:scaleX(0); }
+.intro-active:not(.intro-dismissed) .venue-intro { animation:venue-intro 3.8s ease both; }
+.intro-active:not(.intro-dismissed) .venue-intro i { animation:venue-line 3.8s ease both; }
+@keyframes venue-intro { 0%,8% { opacity:0; translate:0 10px; } 28%,62% { opacity:1; translate:0 0; } 100% { opacity:0; translate:0 -8px; } }
+@keyframes venue-line { 0%,10% { transform:scaleX(0); } 35%,65% { transform:scaleX(1); } 100% { transform:scaleX(.6); } }
+@media (prefers-reduced-motion:reduce) { .venue-intro { display:none; } }
+.motion-paused .venue-intro { display:none; }
