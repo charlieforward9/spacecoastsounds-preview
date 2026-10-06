@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261005-compact';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261005-stagefirst';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -7,14 +7,14 @@ export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
 }
 
 export function cameraPose(profile,aspect,pointer,drag,time,drop=0) {
-  const framing=Math.max(1,1.12/Math.max(.55,aspect));
+  const framing=Math.max(.82,1.08/Math.max(.55,aspect));
   const radius=(profile.radius-drop*2.4)*framing;
   const azimuth=THREE.MathUtils.clamp(profile.azimuth+pointer.x*.46+drag.x+Math.sin(time*.19)*.025,-1.05,1.05);
   const elevation=THREE.MathUtils.clamp(profile.elevation-pointer.y*.19+drag.y-drop*.08,.24,.76);
   return {x:Math.sin(azimuth)*Math.cos(elevation)*radius,y:Math.sin(elevation)*radius+profile.lookY,z:Math.cos(azimuth)*Math.cos(elevation)*radius,lookX:pointer.x*.9,lookY:profile.lookY-pointer.y*.28,lookZ:pointer.y*.45};
 }
 
-export async function createRoom(container,{reducedMotion=false,initialMode='ceremony'}={}) {
+export async function createRoom(container,{reducedMotion=false,initialMode='party'}={}) {
   const coarse=matchMedia('(pointer:coarse)').matches;
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
   // Limit only the WebGL buffer; text and controls retain full CSS resolution.
@@ -24,7 +24,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(42,1,.1,120);
   const root=new THREE.Group();scene.add(root);
   const worlds=await createWorlds({yieldToMain:true});Object.values(worlds).forEach(world=>{root.add(world.group);world.group.visible=false;});
-  let mode=worlds[initialMode]?initialMode:'ceremony';
+  let mode=worlds[initialMode]?initialMode:'party';
   const transition=new SceneTransition(worlds,mode);
   const ambient=new THREE.HemisphereLight(0xf3f8ff,0x7c8878,2.4);scene.add(ambient);
   const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(-7,12,8);key.castShadow=true;

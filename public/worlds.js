@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
 
 export class SceneTransition {
-  constructor(worlds,mode='ceremony'){
+  constructor(worlds,mode='party'){
     this.worlds=worlds;this.mode=mode;this.progress=1;
     this.start=new THREE.Vector3();this.end=new THREE.Vector3();
     Object.entries(worlds).forEach(([name,world])=>world.group.visible=name===mode);

@@ -4,36 +4,22 @@ export function createMotionSystem({isEnabled}) {
   const stage=document.querySelector('.stage-shell'),cursor=document.querySelector('.room-cursor'),board=document.getElementById('comparison-board');
   let context,dropCleanup,introPlayed=false,cleanups=[];
   const listen=(element,event,handler)=>{element.addEventListener(event,handler);cleanups.push(()=>element.removeEventListener(event,handler));};
-  document.querySelectorAll('.hero-line-inner').forEach(line=>{
-    const text=line.textContent;line.replaceChildren(...Array.from(text,letter=>{const span=document.createElement('span');span.className=letter===' '?'hero-char hero-char-space':'hero-char';span.textContent=letter===' '?'\u00a0':letter;return span;}));
-  });
-  function placeIndicator(animate=true){
-    const picker=document.querySelector('.mobile-tier-picker'),active=picker.querySelector('[aria-pressed=true]'),indicator=picker.querySelector('.tier-indicator');
-    if(!picker.offsetWidth)return;
-    const values={x:active.offsetLeft-4,width:active.offsetWidth,height:active.offsetHeight};
-    if(animate&&isEnabled())gsap.to(indicator,{...values,duration:.3,ease:'power3.out',overwrite:true});else gsap.set(indicator,values);
-  }
   board.addEventListener('tierchange',()=>{
-    placeIndicator();if(!isEnabled())return;
+    if(!isEnabled()||!document.querySelector('.package-tile[aria-pressed=true]'))return;
     gsap.fromTo('.package-tile[aria-pressed=true] .package-price',{y:5,opacity:.5},{y:0,opacity:1,duration:.3,ease:'power2.out',overwrite:true});
   });
-  document.querySelector('.feature-details').addEventListener('toggle',()=>placeIndicator(false));
-  window.addEventListener('resize',()=>placeIndicator(false),{passive:true});
   function destroy(){
     dropCleanup?.kill();context?.revert();
-    const targets='.package-price,.brand-mark i,.drop-ring,.hero-char,.room-cursor,#scene-name,#scene-number,.stage-wordmark span';
+    const targets='.package-price,.brand-mark i,.drop-ring,.room-cursor,#scene-name';
     gsap.killTweensOf(targets);gsap.set(targets,{clearProps:'transform,opacity'});
     cleanups.forEach(clean=>clean());cleanups=[];cursor.classList.remove('is-dragging');stage.classList.remove('is-dropping');document.documentElement.classList.remove('motion-enabled');
   }
   function build(){
-    destroy();placeIndicator(false);if(!isEnabled())return;
+    destroy();if(!isEnabled())return;
     document.documentElement.classList.add('motion-enabled');
     context=gsap.context(()=>{
       if(!introPlayed&&scrollY<150){
-        gsap.timeline({defaults:{ease:'power3.out'}})
-          .from('.hero-char',{yPercent:110,rotationX:-45,opacity:0,duration:.65,stagger:.018},.05)
-          .from('.landing-prices,.hero-actions',{y:14,opacity:.5,duration:.6,stagger:.08},.3)
-          .from(stage,{y:20,opacity:.5,duration:.8},.1);
+        gsap.from(stage,{opacity:.65,duration:.7,ease:'power2.out'});
       }
       introPlayed=true;
       if(matchMedia('(pointer:fine)').matches){
@@ -55,8 +41,7 @@ export function createMotionSystem({isEnabled}) {
   }
   function sceneChange(){
     if(!isEnabled())return;
-    gsap.fromTo('#scene-name,.stage-wordmark span',{y:8,opacity:.3},{y:0,opacity:1,duration:.5,stagger:.05,ease:'power3.out',overwrite:true});
-    gsap.fromTo('#scene-number',{y:12,opacity:.2},{y:0,opacity:1,duration:.6,ease:'power3.out',overwrite:true});
+    gsap.fromTo('#scene-name',{y:8,opacity:.3},{y:0,opacity:1,duration:.5,stagger:.05,ease:'power3.out',overwrite:true});
   }
   function drop(){
     if(!isEnabled())return;stage.classList.add('is-dropping');

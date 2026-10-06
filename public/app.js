@@ -1,7 +1,7 @@
-import { mountComparison } from './comparison.js?v=20261005-compact';
-import { createMotionSystem } from './motion.js?v=20261005-compact';
+import { mountComparison } from './comparison.js?v=20261005-stagefirst';
+import { createMotionSystem } from './motion.js?v=20261005-stagefirst';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let room, motion = !reducedMotion.matches, motionSystem, currentMode = 'ceremony';
+let room, motion = !reducedMotion.matches, motionSystem, currentMode = 'party';
 const comparison = mountComparison();
 const motionButton=document.getElementById('motion-toggle');
 function setMotion(value){motion=value;room?.setMotion(value);motionSystem?.setEnabled(value);document.documentElement.classList.toggle('motion-paused',!value);motionButton.setAttribute('aria-pressed',String(value));motionButton.setAttribute('aria-label',value?'Pause motion':'Resume motion');motionButton.innerHTML=value?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 12 7-12 7Z"/></svg>';}
@@ -11,16 +11,14 @@ function changeMode(mode){
   document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===mode)));
   room?.setMode(mode);
   const shell=document.querySelector('.stage-shell');shell.dataset.scene=mode;document.documentElement.dataset.scene=mode;document.querySelector('meta[name=theme-color]').content={ceremony:'#f5f5f0',cocktail:'#c7b0a4',party:'#080d18'}[mode];
-  const labels={ceremony:['01','CEREMONY','Ceremony'],cocktail:['02','COCKTAIL HOUR','Cocktail hour'],party:['03','DANCE FLOOR','Dance floor']};
-  const [number,title,name]=labels[mode];document.getElementById('scene-number').textContent=number;document.getElementById('scene-name').textContent=title;
-  document.querySelector('.stage-wordmark span').textContent=name;document.getElementById('drop-button').hidden=mode!=='party';document.getElementById('sound-toggle').hidden=mode!=='party';
+  document.getElementById('scene-name').textContent={ceremony:'CEREMONY',cocktail:'COCKTAIL HOUR',party:'DANCE FLOOR'}[mode];
+  document.getElementById('drop-button').hidden=mode!=='party';document.getElementById('sound-toggle').hidden=mode!=='party';
   if(mode!=='party'&&sound)stopSound();
   motionSystem?.sceneChange();
 }
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
-document.getElementById('comparison-board').addEventListener('tierchange',event=>changeMode(event.detail.index===1?'ceremony':'party'));
 if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Tap a scene to explore';
-async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-compact');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable; displaying concept artwork.',error);const fallback=document.querySelector('.stage-fallback');fallback.src=fallback.dataset.src;document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';document.getElementById('stage-hint').textContent='Original venue concept artwork';document.querySelectorAll('[data-mode]').forEach(button=>button.disabled=true);}}
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-stagefirst');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable; displaying concept artwork.',error);const fallback=document.querySelector('.stage-fallback');fallback.src=fallback.dataset.src;document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';document.getElementById('stage-hint').textContent='Original venue concept artwork';document.querySelectorAll('[data-mode]').forEach(button=>button.disabled=true);}}
 initRoom();
 motionSystem=createMotionSystem({getRoom:()=>room,isEnabled:()=>motion});
 // An original, synthesized preview beat. No autoplay or copyrighted audio.
@@ -37,7 +35,6 @@ soundButton.addEventListener('click',async()=>{if(soundStarting)return;if(sound)
 document.getElementById('drop-button').addEventListener('click',()=>{if(!sound)soundButton.click();changeMode('party');room?.drop();motionSystem?.drop();document.querySelector('#drop-button > span:nth-child(2)').textContent='ONE MORE TIME';});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopSound();});
 
-document.querySelectorAll('[data-package]').forEach(link=>link.addEventListener('click',()=>{document.getElementById('package-select').value=link.dataset.package;}));
 document.querySelector('input[name=date]').min=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 let apiBase='';
 try{const response=await fetch('./preview-config.json',{cache:'no-store'});if(response.ok){const config=await response.json();apiBase=['127.0.0.1','localhost','::1'].includes(location.hostname)?'':config.apiBase||'';}}catch{}
