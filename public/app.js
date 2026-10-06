@@ -1,7 +1,7 @@
-import { mountComparison } from './comparison.js?v=20261005-worlds';
-import { createMotionSystem } from './motion.js?v=20261005-worlds';
+import { mountComparison } from './comparison.js?v=20261005-compact';
+import { createMotionSystem } from './motion.js?v=20261005-compact';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let room, motion = !reducedMotion.matches, motionSystem, currentMode = 'party';
+let room, motion = !reducedMotion.matches, motionSystem, currentMode = 'ceremony';
 const comparison = mountComparison();
 const motionButton=document.getElementById('motion-toggle');
 function setMotion(value){motion=value;room?.setMotion(value);motionSystem?.setEnabled(value);document.documentElement.classList.toggle('motion-paused',!value);motionButton.setAttribute('aria-pressed',String(value));motionButton.setAttribute('aria-label',value?'Pause motion':'Resume motion');motionButton.innerHTML=value?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 12 7-12 7Z"/></svg>';}
@@ -10,8 +10,8 @@ function changeMode(mode){
   currentMode=mode;
   document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===mode)));
   room?.setMode(mode);
-  const shell=document.querySelector('.stage-shell');shell.dataset.scene=mode;
-  const labels={ceremony:['01','THE VOWS','Ceremony'],cocktail:['02','THE TOASTS','Cocktail hour'],party:['03','THE DROP','Dance floor']};
+  const shell=document.querySelector('.stage-shell');shell.dataset.scene=mode;document.documentElement.dataset.scene=mode;document.querySelector('meta[name=theme-color]').content={ceremony:'#f5f5f0',cocktail:'#c7b0a4',party:'#080d18'}[mode];
+  const labels={ceremony:['01','CEREMONY','Ceremony'],cocktail:['02','COCKTAIL HOUR','Cocktail hour'],party:['03','DANCE FLOOR','Dance floor']};
   const [number,title,name]=labels[mode];document.getElementById('scene-number').textContent=number;document.getElementById('scene-name').textContent=title;
   document.querySelector('.stage-wordmark span').textContent=name;document.getElementById('drop-button').hidden=mode!=='party';document.getElementById('sound-toggle').hidden=mode!=='party';
   if(mode!=='party'&&sound)stopSound();
@@ -20,15 +20,15 @@ function changeMode(mode){
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
 document.getElementById('comparison-board').addEventListener('tierchange',event=>changeMode(event.detail.index===1?'ceremony':'party'));
 if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Tap a scene to explore';
-async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-worlds');room=createRoom(document.getElementById('stage'),{reducedMotion:!motion});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable; displaying concept artwork.',error);const fallback=document.querySelector('.stage-fallback');fallback.src=fallback.dataset.src;document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';document.getElementById('stage-hint').textContent='Original venue concept artwork';document.querySelectorAll('[data-mode]').forEach(button=>button.disabled=true);}}
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-compact');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode});room.setMode(currentMode);room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable; displaying concept artwork.',error);const fallback=document.querySelector('.stage-fallback');fallback.src=fallback.dataset.src;document.getElementById('stage-loading').textContent='Concept artwork · 3D view unavailable';document.getElementById('stage-hint').textContent='Original venue concept artwork';document.querySelectorAll('[data-mode]').forEach(button=>button.disabled=true);}}
 initRoom();
 motionSystem=createMotionSystem({getRoom:()=>room,isEnabled:()=>motion});
 // An original, synthesized preview beat. No autoplay or copyrighted audio.
-let audioContext, master, beatTimer, beat=0, sound=false, soundStarting=false;
+let audioContext, master, hatNoise, beatTimer, beat=0, sound=false, soundStarting=false;
 const soundButton=document.getElementById('sound-toggle');
 function scheduleBeat(){if(!audioContext||!sound)return;const time=audioContext.currentTime+.025;
   if(beat%2===0){const oscillator=audioContext.createOscillator(),gain=audioContext.createGain();oscillator.frequency.setValueAtTime(125,time);oscillator.frequency.exponentialRampToValueAtTime(42,time+.19);gain.gain.setValueAtTime(.65,time);gain.gain.exponentialRampToValueAtTime(.001,time+.25);oscillator.connect(gain).connect(master);oscillator.start(time);oscillator.stop(time+.26);room?.setBeat(1);window.dispatchEvent(new Event('scs:beat'));}
-  const noise=audioContext.createBuffer(1,audioContext.sampleRate*.04,audioContext.sampleRate),data=noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);const hat=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),hatGain=audioContext.createGain();hat.buffer=noise;filter.type='highpass';filter.frequency.value=8500;hatGain.gain.setValueAtTime(beat%2?.13:.045,time);hatGain.gain.exponentialRampToValueAtTime(.001,time+.04);hat.connect(filter).connect(hatGain).connect(master);hat.start(time);
+  if(!hatNoise){hatNoise=audioContext.createBuffer(1,audioContext.sampleRate*.04,audioContext.sampleRate);const data=hatNoise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}const hat=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),hatGain=audioContext.createGain();hat.buffer=hatNoise;filter.type='highpass';filter.frequency.value=8500;hatGain.gain.setValueAtTime(beat%2?.13:.045,time);hatGain.gain.exponentialRampToValueAtTime(.001,time+.04);hat.connect(filter).connect(hatGain).connect(master);hat.start(time);
   if(beat%2===0){const note=[55,55,65.41,73.42][Math.floor(beat/4)%4],bass=audioContext.createOscillator(),bassGain=audioContext.createGain();bass.type='triangle';bass.frequency.value=note;bassGain.gain.setValueAtTime(.2,time+.025);bassGain.gain.exponentialRampToValueAtTime(.001,time+.22);bass.connect(bassGain).connect(master);bass.start(time+.025);bass.stop(time+.25);}
   beat++;
 }
@@ -44,4 +44,4 @@ try{const response=await fetch('./preview-config.json',{cache:'no-store'});if(re
 const form=document.getElementById('inquiry-form'),status=document.getElementById('form-status');
 form.addEventListener('submit',async event=>{event.preventDefault();if(!form.reportValidity())return;const submit=form.querySelector('[type=submit]');submit.disabled=true;submit.textContent='Saving…';status.textContent='';status.classList.remove('error');
   try{const payload=Object.fromEntries(new FormData(form));const response=await fetch(`${apiBase||'.'}/api/inquiries`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});let body;try{body=await response.json();}catch{}if(!response.ok||!body?.ok)throw new Error(body?.error||'This preview inbox is temporarily unavailable. Please try again while the preview server is running.');status.textContent='Test inquiry saved. Not sent to Space Coast Sounds.';form.reset();document.getElementById('package-select').value=comparison.getSelected().name;
-  }catch(error){status.classList.add('error');status.textContent=error.name==='TimeoutError'?'The preview inbox took too long to respond. Please try again.':error.message;}finally{submit.disabled=false;submit.innerHTML='Try the inquiry form <span aria-hidden="true">+</span>';}});
+  }catch(error){status.classList.add('error');status.textContent=error.name==='TimeoutError'?'The preview inbox took too long to respond. Please try again.':error.message;}finally{submit.disabled=false;submit.innerHTML='Send test inquiry <span aria-hidden="true">+</span>';}});

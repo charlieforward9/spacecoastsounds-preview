@@ -7,7 +7,7 @@ const features = [
   {label:'Ceremony',values:[null,['Audio coverage'],['Audio coverage']]},
   {label:'Cocktail hour',values:[null,['Music'],['Audio coverage']]},
   {label:'Reception',values:[['DJ service','Entrance, dinner & dancing'],['Full DJ & MC'],['Audio coverage']]},
-  {label:'Sound system',values:[['Professional system'],['Ceremony audio','Other setups not specified'],['Multiple setups']]},
+  {label:'Sound system',values:[['Professional system'],['Ceremony audio'],['Multiple setups']]},
   {label:'Microphones',values:[['Wireless toast mic'],['Wireless officiant mic'],['Additional mics']]},
   {label:'MC services',values:[['Basic announcements'],['Full reception MC'],null]},
   {label:'Music & planning',values:[['Planning consultation','Pre-wedding'],['Custom music planning'],null]},
@@ -17,7 +17,7 @@ const features = [
 export function mountComparison() {
   const board=document.getElementById('comparison-board');
   const head=document.getElementById('comparison-head'),body=document.getElementById('comparison-body');
-  const tr=document.createElement('tr'),corner=document.createElement('th');corner.scope='col';corner.className='comparison-corner';corner.innerHTML='<span>YOUR CELEBRATION,<br>YOUR COVERAGE.</span><i aria-hidden="true">✦</i>';tr.append(corner);
+  const tr=document.createElement('tr'),corner=document.createElement('th');corner.scope='col';corner.className='comparison-corner';corner.innerHTML='<span>Inclusions</span>';tr.append(corner);
   tiers.forEach((tier,index)=>{
     const th=document.createElement('th');th.scope='col';th.id=`tier-${index}`;th.dataset.column=index;th.className=index===1?'is-selected':'';
     const button=document.createElement('button');button.type='button';button.className='tier-button';button.dataset.tier=index;button.dataset.package=tier.name;button.setAttribute('aria-pressed',String(index===1));
@@ -39,8 +39,9 @@ export function mountComparison() {
   });
   tiers.forEach(tier=>{const article=document.createElement('article'),h3=document.createElement('h3'),ul=document.createElement('ul');h3.textContent=tier.title;for(const feature of tier.features){const li=document.createElement('li');li.textContent=feature;ul.append(li);}article.append(h3,ul);document.getElementById('package-source-grid').append(article);});
   let selected=1;
-  function select(index){selected=index;board.dataset.selected=index;document.querySelectorAll('[data-tier]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.tier)===index)));board.querySelectorAll('[data-column]').forEach(cell=>cell.classList.toggle('is-selected',Number(cell.dataset.column)===index));const cta=document.getElementById('comparison-cta');cta.dataset.package=tiers[index].name;cta.setAttribute('aria-label',`Ask about the ${tiers[index].name} package`);document.getElementById('package-select').value=tiers[index].name;board.dispatchEvent(new CustomEvent('tierchange',{detail:{index,tier:tiers[index]}}));}
+  function select(index){selected=index;board.dataset.selected=index;document.querySelectorAll('[data-tier]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.tier)===index)));board.querySelectorAll('[data-column]').forEach(cell=>cell.classList.toggle('is-selected',Number(cell.dataset.column)===index));const cta=document.getElementById('comparison-cta');cta.dataset.package=tiers[index].name;cta.setAttribute('aria-label',`Ask about the ${tiers[index].name} package`);document.querySelectorAll('[data-preview-tier]').forEach(link=>link.classList.toggle('is-selected',Number(link.dataset.previewTier)===index));document.getElementById('package-select').value=tiers[index].name;board.dispatchEvent(new CustomEvent('tierchange',{detail:{index,tier:tiers[index]}}));}
   document.querySelectorAll('[data-tier]').forEach(button=>button.addEventListener('click',()=>select(Number(button.dataset.tier))));
+  document.querySelectorAll('[data-preview-tier]').forEach(link=>link.addEventListener('click',()=>select(Number(link.dataset.previewTier))));
   board.dataset.selected='1';
   return {select,getSelected:()=>tiers[selected]};
 }

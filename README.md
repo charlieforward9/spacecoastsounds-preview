@@ -30,16 +30,20 @@ The scenes are procedural, imagined venues with stylized figures. The fallback i
 
 ## Included assets
 
-- Three.js 0.186.1 and official postprocessing modules: MIT license in `public/vendor/THREE-LICENSE.txt`.
-- GSAP and ScrollTrigger 3.15.0: vendored official distributions with their original notices; [GSAP Standard License](https://gsap.com/standard-license/).
+- Three.js 0.186.1 and official geometry utilities: MIT license in `public/vendor/THREE-LICENSE.txt`.
+- GSAP 3.15.0: vendored official distributions with their original notices; [GSAP Standard License](https://gsap.com/standard-license/).
 - Space Grotesk: SIL Open Font License, included alongside the local font.
 - Original concept image: generated with the built-in imagegen tool; prompt in `ASSET-PROMPT.md`.
 - Original synthesized preview beat: browser Web Audio, muted until enabled.
 
 ## Motion and fallback
 
-Ceremony has an aisle, floral arch, seated guests, couple, sound system, and sunset terrace. Cocktail hour has a bar, tables, drinks, conversational guest groups, lounge seating, and string lights. The dance floor has a DJ booth, speakers, dancing guests, LED wall and floor, moving light rigs, and a disco ball. Scene changes slide between separate scene graphs and remain interruptible.
+Ceremony has an aisle, floral arch, seated guests, couple, sound system, and bright white terrace. Cocktail hour has a bar, tables, drinks, conversational guest groups, lounge seating, and string lights. The dance floor has a DJ booth, speakers, dancing guests, LED wall and floor, moving light rigs, and a disco ball. Scene changes slide between separate scene graphs and remain interruptible.
 
-Mouse movement changes camera azimuth and elevation, aims the dance-floor lights, and projects a light and particle trail onto the floor. Dragging adds direct orbit control. Static architecture is combined by material, and people use instanced geometry. Only the active scene and its outgoing transition are rendered. The comparison highlights the selected package and synchronizes the inquiry form; phones show one selected package with a sliding selector.
+Mouse movement changes camera azimuth and elevation, aims the dance-floor lights, and projects a light and particle trail onto the floor. Dragging adds direct orbit control. Static architecture is combined by material, and people use instanced geometry. Only the active scene and its outgoing transition are rendered. Three prices appear on the landing view and in a compact row directly under the scenes. All three price cards stay side by side on phones and synchronize the inquiry form. The detailed comparison and full source list are collapsed until requested; the form follows the price row.
 
-The scene pauses rendering outside the viewport or when the document is hidden. Reduced-motion preferences and the pause control stop orbit, scene transitions, particles, shaders, and GSAP motion. Touch scrolling remains available. Audio stops when the page becomes hidden. WebGL failure displays the concept artwork; package and form functionality remain available.
+The ceremony opens in a white theme, cocktail hour uses warm middle tones, and the dance floor is dark. The renderer draws directly without a bloom/postprocessing pipeline. Its buffer is capped at 300,000 pixels on coarse-pointer devices and 600,000 on desktop, with adaptive reduction under sustained slow frames. Phones use instanced contact shadows; desktop shadow maps are 512px and reused between updates. Quiet crowds update at 30Hz while the camera responds at display rate. Construction yields between scenes and material batches, and venue shaders are precompiled before interaction. The scene stops scheduling animation frames outside the viewport, while paused, or when the document is hidden. Reduced-motion preferences and the pause control stop orbit, scene transitions, particles, shaders, and GSAP motion. Touch scrolling remains available. Audio stops when the page becomes hidden. WebGL failure displays the concept artwork; package and form functionality remain available.
+
+## Verification boundary
+
+Geometry, mouse camera framing, rapid scene changes, reduced-motion settlement, pixel budgets, HTTP assets, and preview form storage can be checked independently. A fresh browser visual review and GPU/frame-rate capture were unavailable due to the browser security policy in the editing session; these source checks do not establish a measured no-lag result.
