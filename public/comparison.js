@@ -1,12 +1,12 @@
-import { tiers } from './packages.js?v=20261006-matrix';
+import { tiers } from './packages.js?v=20261006-text';
 export { tiers };
 // A proposed package ladder: All-Day builds on the middle package in this concept.
 export const features = [
-  {label:'Coverage',icon:'rings',symbols:[['decks'],['vows','glass','djMC'],['ceremonyAudio','cocktailAudio','danceAudio']],values:['Reception · up to 4 hours','Ceremony, cocktail hour & reception · up to 6 hours','Ceremony, cocktail hour & reception · up to 8 hours']},
+  {label:'Coverage',icon:'rings',symbols:[['decks'],['vows'],['ceremonyAudio']],text:['Reception','Ceremony, cocktail & reception','Ceremony, cocktail & reception'],values:['Reception · up to 4 hours','Ceremony, cocktail hour & reception · up to 6 hours','Ceremony, cocktail hour & reception · up to 8 hours']},
   {label:'Sound',icon:'speaker',symbols:[['speaker'],['ceremonySpeaker'],['speaker','speaker']],multiple:[false,false,true],values:['Professional sound system','Ceremony & reception sound','Multiple sound setups']},
   {label:'Mics',icon:'mic',symbols:[['toastMic'],['officiantMic'],['mic','mic']],multiple:[false,false,true],values:['Wireless microphone for toasts','Wireless officiant microphone','Additional microphones']},
-  {label:'DJ + MC',icon:'voice',symbols:[['announce'],['djMC'],['fullMC','coordinate']],values:['Reception DJ · basic MC & announcements','Full reception DJ & MC','Full reception DJ & MC, plus event coordination']},
-  {label:'Music',icon:'playlist',symbols:[['record'],['playlist'],['playlist','danceAudio']],values:['Entrance, dinner & dancing','Custom music planning','Custom music planning across your day']},
+  {label:'DJ + MC',icon:'voice',symbols:[['announce'],['djMC'],['fullMC','coordinate']],text:['Reception DJ · basic MC & announcements','Full reception DJ & MC','Full reception DJ & MC'],values:['Reception DJ · basic MC & announcements','Full reception DJ & MC','Full reception DJ & MC, plus event coordination']},
+  {label:'Music',icon:'playlist',symbols:[['record'],['playlist'],['playlist','danceAudio']],text:['Entrance, dinner & dancing','Custom music planning','Custom music planning'],values:['Entrance, dinner & dancing','Custom music planning','Custom music planning across your day']},
   {label:'Support',icon:'coordinate',symbols:[['consult'],['timeline'],['coordinate']],values:['Pre-wedding planning consultation','Timeline coordination','Event coordination support']}
 ];
 // Each pictogram depicts the actual inclusion, rather than repeating a checkmark.
@@ -45,33 +45,24 @@ export function mountComparison() {
   const board=document.getElementById('comparison-board'),body=document.getElementById('comparison-body'),packageSelect=document.getElementById('package-select');
   const cleanups=[];
   const listen=(element,event,handler)=>{element.addEventListener(event,handler);cleanups.push(()=>element.removeEventListener(event,handler));};
-  const detail=document.createElement('div'),detailIcon=document.createElement('span'),detailCopy=document.createElement('div'),detailName=document.createElement('span'),detailText=document.createElement('p');
-  detail.id='package-detail';detail.className='matrix-detail';detail.setAttribute('role','status');detail.setAttribute('aria-live','polite');detail.setAttribute('aria-atomic','true');
-  detailIcon.className='matrix-detail-icon';detailIcon.setAttribute('aria-hidden','true');detailName.className='matrix-detail-name';detailText.className='matrix-detail-text';detailCopy.append(detailName,detailText);detail.append(detailIcon,detailCopy);
-  let selected=1,activeFeature=0,inspectedTier=1;
-  const rows=features.map((feature,rowIndex)=>{
-    const row=document.createElement('div');row.className='matrix-row';row.dataset.feature=rowIndex;
-    const control=document.createElement('button');control.className='matrix-heading';control.type='button';control.innerHTML=`${iconMarkup(feature.icon)}<span>${feature.label}</span>`;
-    control.setAttribute('aria-controls','package-detail');control.setAttribute('aria-label',`Show ${feature.label.toLowerCase()} details`);row.append(control);
-    listen(control,'click',()=>showDetail(rowIndex));listen(control,'focus',()=>showDetail(rowIndex));
+  let selected=1;
+  const headings=document.createElement('div');headings.className='sr-only';headings.setAttribute('role','row');
+  ['Feature',...tiers.map(tier=>tier.title)].forEach(text=>{const heading=document.createElement('span');heading.setAttribute('role','columnheader');heading.textContent=text;headings.append(heading);});body.append(headings);
+  features.forEach((feature,rowIndex)=>{
+    const row=document.createElement('div');row.className='matrix-row';row.dataset.feature=rowIndex;row.setAttribute('role','row');
+    const heading=document.createElement('div');heading.className='matrix-heading';heading.setAttribute('role','rowheader');heading.innerHTML=`${iconMarkup(feature.icon)}<span>${feature.label}</span>`;row.append(heading);
     feature.values.forEach((value,index)=>{
-      const cell=document.createElement('button');cell.type='button';cell.className='matrix-cell';cell.dataset.column=index;cell.dataset.symbols=feature.symbols[index].length;cell.innerHTML=featureSymbols(feature,index);
-      cell.setAttribute('aria-label',`${tiers[index].name} · ${feature.label}: ${value}`);cell.title=value;cell.setAttribute('aria-controls','package-detail');
-      const inspect=()=>{if(!cell.disabled)showDetail(rowIndex,index);};listen(cell,'click',inspect);listen(cell,'focus',inspect);row.append(cell);
+      const cell=document.createElement('div');cell.className='matrix-cell';cell.setAttribute('role','cell');cell.dataset.column=index;cell.dataset.symbols=feature.symbols[index].length;
+      const inclusion=document.createElement('span'),text=document.createElement('span');inclusion.className='matrix-inclusion';inclusion.innerHTML=featureSymbols(feature,index);text.className='matrix-text';text.textContent=feature.text?.[index]??value;inclusion.append(text);cell.append(inclusion);
+      cell.setAttribute('aria-label',`${tiers[index].name} · ${feature.label}: ${value}`);cell.title=value;row.append(cell);
     });
-    body.append(row);return row;
+    body.append(row);
   });
-  board.append(detail);
-  function showDetail(rowIndex=activeFeature,index=selected??inspectedTier){
-    activeFeature=rowIndex;inspectedTier=index;const feature=features[rowIndex];
-    detailName.textContent=`${tiers[index].title} · ${feature.label}`;detailText.textContent=feature.values[index];detailIcon.innerHTML=iconMarkup(feature.icon);
-    rows.forEach((row,i)=>{const active=i===rowIndex;row.classList.toggle('is-detail',active);row.querySelector('.matrix-heading').setAttribute('aria-pressed',String(active));row.querySelectorAll('[data-column]').forEach(cell=>cell.setAttribute('aria-pressed',String(active&&Number(cell.dataset.column)===index)));});
-  }
   function select(index){
     if(index!==null&&!tiers[index])return;selected=index;board.dataset.selected=index===null?'':index;
     document.querySelectorAll('.package-choice').forEach(button=>{const active=Number(button.dataset.tier)===index,tile=button.closest('.package-tile');button.setAttribute('aria-pressed',String(active));tile.classList.toggle('is-selected',active);tile.classList.toggle('is-inactive',index!==null&&!active);});
-    board.querySelectorAll('[data-column]').forEach(cell=>{const active=Number(cell.dataset.column)===index,inactive=index!==null&&!active;cell.classList.toggle('is-selected',active);cell.classList.toggle('is-inactive',inactive);cell.disabled=inactive;cell.setAttribute('aria-disabled',String(inactive));});
-    showDetail(activeFeature,index??inspectedTier);packageSelect.value=index===null?'Still deciding':tiers[index].name;board.dispatchEvent(new CustomEvent('tierchange',{detail:{index}}));
+    board.querySelectorAll('[data-column]').forEach(cell=>{const active=Number(cell.dataset.column)===index,inactive=index!==null&&!active;cell.classList.toggle('is-selected',active);cell.classList.toggle('is-inactive',inactive);});
+    packageSelect.value=index===null?'Still deciding':tiers[index].name;board.dispatchEvent(new CustomEvent('tierchange',{detail:{index}}));
   }
   document.querySelectorAll('.package-choice').forEach(button=>listen(button,'click',()=>select(Number(button.dataset.tier))));
   listen(packageSelect,'change',()=>{const index=tiers.findIndex(tier=>tier.name===packageSelect.value);select(index<0?null:index);});

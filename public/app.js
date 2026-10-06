@@ -1,7 +1,7 @@
-import { mountComparison } from './comparison.js?v=20261006-matrix';
-import { createSceneAudio } from './audio.js?v=20261006-matrix';
-import { createMotionSystem } from './motion.js?v=20261006-matrix';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-matrix';
+import { mountComparison } from './comparison.js?v=20261006-text';
+import { createSceneAudio } from './audio.js?v=20261006-text';
+import { createMotionSystem } from './motion.js?v=20261006-text';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-text';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let room, audio, motion = !reducedMotion.matches, motionSystem, currentMode = 'ceremony';
 const comparison = mountComparison();
@@ -20,7 +20,7 @@ function changeMode(mode){
 }
 function updatePhaseControls(){document.querySelectorAll('[data-mode]').forEach(button=>{const available=phaseAvailable(comparison.getSelectedIndex(),button.dataset.mode),label=button.getAttribute('aria-label');button.disabled=!available;button.setAttribute('aria-disabled',String(!available));button.title=available?label:`${label} is not included in the Reception package`;button.querySelector('.phase-lock').hidden=available;});}
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
-async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261006-matrix');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,initialTier:comparison.getSelectedIndex(),intro:scrollY<150});room.setTier(comparison.getSelectedIndex());changeMode(resolvePhase(comparison.getSelectedIndex(),currentMode));room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='Scene unavailable';}}
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261006-text');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,initialTier:comparison.getSelectedIndex(),intro:scrollY<150});room.setTier(comparison.getSelectedIndex());changeMode(resolvePhase(comparison.getSelectedIndex(),currentMode));room.setMotion(motion);document.querySelector('.stage-shell').classList.add('ready');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='Scene unavailable';}}
 document.getElementById('comparison-board').addEventListener('tierchange',event=>{room?.setTier(event.detail.index);updatePhaseControls();const next=resolvePhase(event.detail.index,currentMode);if(next!==currentMode)changeMode(next);});
 updatePhaseControls();
 initRoom();

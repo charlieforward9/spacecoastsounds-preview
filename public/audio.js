@@ -1,4 +1,4 @@
-import {SCENES,TRANSITION_SECONDS,equalPowerMix} from './blend.js?v=20261006-matrix';
+import {SCENES,TRANSITION_SECONDS,equalPowerMix} from './blend.js?v=20261006-text';
 const files=['ceremony','cocktail','dance-floor'];
 export function createSceneAudio({button,onEnergy=()=>{},initialMode='ceremony',stage}){
   let mode=initialMode,requested=true,context,master,analyser,gains,sources,ready,error=false,loaded=false,unlocked=false,meterTimer,stageVisible=true,meterEnabled=true,lastPulse=0,previousEnergy=0;
