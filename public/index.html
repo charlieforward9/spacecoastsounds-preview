@@ -6,18 +6,19 @@
   <meta name="theme-color" content="#080b0c">
   <meta name="description" content="Space Coast Sounds wedding DJ website concept. Compare reception, ceremony and reception, and all-day wedding audio packages.">
   <meta name="robots" content="noindex,nofollow">
-  <title>Space Coast Sounds — Your day. Your people. Your soundtrack.</title>
+  <title>Space Coast Sounds — Every moment. Amplified.</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./motion.css">
+  <link rel="stylesheet" href="./motion.css?v=20261005-worlds">
+  <link rel="stylesheet" href="./experience.css?v=20261005-worlds">
   <script defer src="./vendor/gsap/gsap.min.js"></script>
   <script defer src="./vendor/gsap/ScrollTrigger.min.js"></script>
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
-  <script type="module" src="./app.js?v=20261005-motion"></script>
+  <script type="module" src="./app.js?v=20261005-worlds"></script>
 </head>
 <body>
   <div class="reading-progress" aria-hidden="true"></div>
-  <div class="room-cursor" aria-hidden="true"><i></i><span>LOOK AROUND</span></div>
+  <div class="room-cursor" aria-hidden="true"><i></i><span>DRAG</span></div>
   <a class="skip-link" href="#packages">Skip to packages</a>
   <header class="header">
     <a class="brand" href="#top" aria-label="Space Coast Sounds home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>SPACE COAST<br><strong>SOUNDS</strong></span></a>
@@ -28,54 +29,40 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
         <p class="eyebrow"><span class="cross" aria-hidden="true">✦</span> WEDDING DJ & AUDIO · SPACE COAST</p>
-        <h1 id="hero-title" aria-label="Your day. Your people. Your sound."><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">YOUR DAY.</span></span><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">YOUR PEOPLE.</span></span><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">YOUR SOUND.</span></span></h1>
-        <p class="hero-description">From the first “I do” to the last song.<br>Let’s make it sound like you.</p>
-        <div class="hero-actions"><a class="button" href="#contact">Let’s plan your night</a><a class="text-link" href="#packages">Find your package <span aria-hidden="true">+</span></a></div>
-        <div class="hero-facts"><div><strong>4 / 6 / 8</strong><span>hours of coverage</span></div><div><strong>ONE GOOD NIGHT</strong><span>your music, your moments</span></div></div>
+        <h1 id="hero-title" aria-label="Every moment. Amplified."><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">EVERY</span></span><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">MOMENT.</span></span><span class="hero-line" aria-hidden="true"><span class="hero-line-inner">AMPLIFIED.</span></span></h1>
+        <p class="hero-description">From the vows to the last song.</p>
+        <div class="hero-actions"><a class="button" href="#contact">Plan your night</a><a class="text-link" href="#packages">Packages <span aria-hidden="true">+</span></a></div>
       </div>
       <div class="stage-shell" id="experience">
         <div class="stage-aura" aria-hidden="true"></div><div class="drop-ring" aria-hidden="true"></div>
-        <div class="stage-top"><span class="stage-label">THE DANCE FLOOR</span><span class="micro">3D SOUND EXPERIENCE</span></div>
-        <div id="stage" role="img" aria-label="Interactive concept of a wedding dance floor with dancing figures, a DJ booth, speakers and moving lights"><img class="stage-fallback" src="./assets/venue-concept.png" alt="Imagined dance floor with a DJ booth, tower speakers, guests and colorful lighting"><div class="stage-loading" id="stage-loading">Setting the scene…</div></div>
-        <div class="stage-wordmark" aria-hidden="true">SCS <span>01 — AFTER DARK</span></div>
+        <div class="stage-top"><span class="stage-label" id="scene-name">THE DROP</span><span class="micro">EXPLORE</span></div>
+        <div id="stage" role="img" aria-label="Interactive imagined dance floor. Move your mouse or drag to orbit."><img class="stage-fallback" data-src="./assets/venue-concept.png" alt="Imagined dance floor with a DJ booth, tower speakers, guests and colorful lighting"><div class="stage-loading" id="stage-loading">Setting the scene…</div></div>
+        <div class="stage-wordmark" aria-hidden="true"><b id="scene-number">03</b><span>Dance floor</span></div>
         <button class="drop-button" id="drop-button" type="button" aria-label="Drop the beat and play original preview audio"><span class="drop-play" aria-hidden="true">▶</span><span>DROP THE BEAT</span><span class="drop-tempo">120 BPM</span></button>
         <div class="stage-controls">
-          <div class="mode-switch" role="group" aria-label="Room atmosphere"><button data-mode="ceremony" aria-pressed="false">Ceremony</button><button data-mode="cocktail" aria-pressed="false">Cocktail</button><button data-mode="party" aria-pressed="true">Dance floor</button></div>
-          <div class="scene-tools"><button id="sound-toggle" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span></button><button id="motion-toggle" aria-pressed="true" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
+          <div class="mode-switch" role="group" aria-label="Choose a scene"><button data-mode="ceremony" aria-pressed="false">Ceremony</button><button data-mode="cocktail" aria-pressed="false">Cocktail</button><button data-mode="party" aria-pressed="true">Dance floor</button></div>
+          <div class="scene-tools"><button id="sound-toggle" aria-pressed="false" aria-label="Play preview beat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span></button><button id="motion-toggle" aria-pressed="true" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
         </div>
-        <p class="stage-note"><span id="stage-hint">Move your cursor to look around</span><span>Concept room · original preview beat</span></p>
+        <p class="stage-note"><span id="stage-hint">Move to explore · drag to orbit</span><span>Imagined venues</span></p>
       </div>
     </section>
-    <div class="ticker" aria-hidden="true"><div class="ticker-track"><span class="ticker-repeat">GOOD MUSIC. <em>GREAT PEOPLE.</em> ✦ </span><span class="ticker-repeat">GOOD MUSIC. <em>GREAT PEOPLE.</em> ✦ </span></div></div>
-    <section class="moments section" aria-labelledby="moments-title">
-      <div class="section-intro reveal"><p class="eyebrow">01 / EVERY MOMENT HAS A SOUNDTRACK</p><h2 id="moments-title">Feel the moment.<br><span>We’ll handle the sound.</span></h2></div>
-      <div class="moments-grid">
-        <article class="moment reveal"><span class="moment-number">01</span><svg class="moment-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 38S8 28 8 17a8 8 0 0 1 16-2 8 8 0 0 1 16 2c0 11-16 21-16 21Z"/></svg><h3>The “I do.”</h3><p>Ceremony audio and an officiant microphone for the words you’ll remember.</p><span class="moment-tag">CEREMONY & RECEPTION PACKAGE</span></article>
-        <article class="moment reveal"><span class="moment-number">02</span><svg class="moment-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="m10 10 14 16 14-16H10ZM24 26v13M15 39h18M24 10l7-7"/></svg><h3>The in-between.</h3><p>Cocktail hour music while your favorite people settle in and catch up.</p><span class="moment-tag">CEREMONY & RECEPTION PACKAGE</span></article>
-        <article class="moment reveal"><span class="moment-number">03</span><svg class="moment-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 32V10l22-5v22M18 16l22-5"/><ellipse cx="11" cy="33" rx="7" ry="5"/><ellipse cx="33" cy="28" rx="7" ry="5"/></svg><h3>The all-in.</h3><p>Your entrance, dinner and dancing, with DJ and MC options to match your celebration.</p><span class="moment-tag">RECEPTION PACKAGES</span></article>
-      </div>
-    </section>
-    <section class="cinematic" aria-labelledby="cinematic-title"><div class="cinematic-frame"><img src="./assets/venue-concept.png" alt="AI-generated concept of a wedding dance floor with speakers, guests, and cyan and lime lights" loading="lazy"><div class="cinematic-shade"></div></div><div class="cinematic-copy"><p class="eyebrow">SOME NIGHTS STAY WITH YOU.</p><h2 id="cinematic-title"><span class="cinematic-line">THE NIGHT</span><span class="cinematic-line">IS YOURS.</span></h2><p class="cinematic-subtitle">From the first dance to “one more song.”</p></div><div class="cinematic-track" aria-hidden="true"><span>01 / THE MOMENT</span><i><b></b></i><span>02 / THE MEMORY</span></div><p class="cinematic-caption">IMAGINED VENUE · AI CONCEPT ART</p></section>
+    <div class="ticker" aria-hidden="true"><div class="ticker-track"><span class="ticker-repeat">VOWS. TOASTS. <em>ONE MORE SONG.</em> ✦ </span><span class="ticker-repeat">VOWS. TOASTS. <em>ONE MORE SONG.</em> ✦ </span></div></div>
     <section class="packages section" id="packages" aria-labelledby="packages-title">
-      <div class="section-heading reveal"><div><p class="eyebrow">02 / FIND YOUR SOUND</p><h2 id="packages-title">Find your <span>frequency.</span></h2></div><p>Choose your coverage.<br>We’ll take care of setup and teardown.</p></div>
+      <div class="section-heading reveal"><div><p class="eyebrow">01 / THE PACKAGES</p><h2 id="packages-title">Your <span>coverage.</span></h2></div><p>4, 6, or 8 hours. Setup included.</p></div>
       <div class="comparison-board" id="comparison-board">
-        <div class="comparison-top"><span class="comparison-label">THE LINEUP</span><span class="comparison-top-note">SELECT A PACKAGE TO PLAN YOUR NIGHT</span></div>
+        <div class="comparison-top"><span class="comparison-label">THE LINEUP</span><span class="comparison-top-note">CHOOSE YOUR COVERAGE</span></div>
         <div class="mobile-tier-picker" role="group" aria-label="Compare a package"><span class="tier-indicator" aria-hidden="true"></span><button data-tier="0" aria-pressed="false">Reception</button><button data-tier="1" aria-pressed="true">Ceremony + Reception</button><button data-tier="2" aria-pressed="false">All-day</button></div>
         <div class="comparison-scroll"><table class="comparison-table"><caption class="sr-only">Space Coast Sounds wedding package feature comparison. Details from the supplied package sheet.</caption><thead id="comparison-head"></thead><tbody id="comparison-body"></tbody></table></div>
-        <div class="comparison-footer"><div><p class="shared-inclusion"><span aria-hidden="true">✓</span> Setup & teardown included. Every package.</p><p class="comparison-key">— Not specified on the package sheet. Ask us to confirm.</p></div><a class="button comparison-cta" href="#contact" id="comparison-cta" data-package="Ceremony & Reception"><span>Plan my celebration</span><span aria-hidden="true">+</span></a></div>
+        <div class="comparison-footer"><div><p class="shared-inclusion"><span aria-hidden="true">✓</span> Setup & teardown included.</p><p class="comparison-key">— Not listed on the package sheet.</p></div><a class="button comparison-cta" href="#contact" id="comparison-cta" data-package="Ceremony & Reception"><span>Choose this package</span><span aria-hidden="true">+</span></a></div>
       </div>
-      <details class="package-source"><summary>See full package inclusions <span aria-hidden="true">+</span></summary><div class="package-source-grid" id="package-source-grid"></div><p>Details from the supplied package sheet. Packages are not assumed to inherit every feature from another tier.</p></details>
-    </section>
-    <section class="music-section section" aria-labelledby="music-title">
-      <div class="music-copy reveal"><p class="eyebrow">03 / MAKE IT YOURS</p><h2 id="music-title">Good music.<br><span>Your kind of good.</span></h2><p>A few must-plays. A few absolutely-nots.<br>Tell us what makes your people move.</p><div class="waveform" aria-hidden="true"></div><p class="micro">YOUR MUSIC BRIEF, READY FOR THE DJ</p></div>
-      <div class="brief-card reveal"><div class="brief-top"><span class="eyebrow">YOUR NIGHT, IN THREE WORDS</span><span class="micro">MUSIC PLANNING</span></div><h3>Set the vibe.</h3><p>Choose a direction to add to your inquiry.</p><div class="vibe-options" role="group" aria-label="Music preference"><button data-vibe="Timeless & soulful" aria-pressed="false">Timeless & soulful</button><button data-vibe="Throwback singalongs" aria-pressed="false">Throwback singalongs</button><button data-vibe="Dance-floor energy" aria-pressed="true">Dance-floor energy</button><button data-vibe="A little of everything" aria-pressed="false">A little of everything</button></div><div class="vibe-result" aria-live="polite"><span class="micro">THE DIRECTION</span><p id="vibe-description">Feel-good hits, big choruses, and a high-energy finish.</p></div><a class="text-link" href="#contact">Bring this vibe to your inquiry <span aria-hidden="true">+</span></a></div>
+      <details class="package-source"><summary>Full inclusions <span aria-hidden="true">+</span></summary><div class="package-source-grid" id="package-source-grid"></div><p>Source: supplied package sheet. Confirm inclusions before booking.</p></details>
     </section>
     <section class="contact section" id="contact" aria-labelledby="contact-title">
-      <div class="contact-copy reveal"><p class="eyebrow">04 / LET’S MAKE A NIGHT OF IT</p><h2 id="contact-title">A date.<br>A dance floor.<br><span>Let’s talk.</span></h2><p>Share a little about your celebration.<br>Start with your date, venue, and the music you love.</p><a class="instagram-link" href="https://www.instagram.com/spacecoastsounds/" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle class="fill" cx="18" cy="6" r="1"/></svg><span>Find us on Instagram<strong>@spacecoastsounds</strong></span></a></div>
-      <form class="contact-form reveal" id="inquiry-form"><p class="form-caption">CHECK YOUR DATE</p><div class="form-row"><label>Your name<input name="name" autocomplete="name" maxlength="100" required placeholder="First and last name"></label><label>Email<input name="email" type="email" autocomplete="email" maxlength="200" required placeholder="you@example.com"></label></div><div class="form-row"><label>Event date<input name="date" type="date" required></label><label>Venue / city<input name="venue" maxlength="180" placeholder="Where’s the celebration?" required></label></div><label>Package<select name="package" id="package-select"><option>Still deciding</option><option>Reception</option><option selected>Ceremony & Reception</option><option>All-Day Audio</option></select></label><label>Tell us about your night<textarea name="message" rows="3" maxlength="2500" placeholder="Guest count, must-play songs, and anything else you’d like us to know…"></textarea></label><label class="honeypot" aria-hidden="true" tabindex="-1">Leave this empty<input name="company" tabindex="-1" autocomplete="off"></label><input type="hidden" name="vibe" id="vibe-input" value="Dance-floor energy"><button class="button submit" type="submit">Send a preview inquiry <span aria-hidden="true">+</span></button><p class="form-disclosure">Concept preview: test inquiries are saved to this preview’s inbox. They are not sent to Space Coast Sounds and do not reserve a date. Please use sample details.</p><div id="form-status" class="form-status" role="status" aria-live="polite"></div></form>
+      <div class="contact-copy reveal"><p class="eyebrow">02 / YOUR NIGHT</p><h2 id="contact-title">Make it<br><span>yours.</span></h2><p>Date. Venue. Your kind of music.</p><a class="instagram-link" href="https://www.instagram.com/spacecoastsounds/" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle class="fill" cx="18" cy="6" r="1"/></svg><span><strong>@spacecoastsounds</strong></span></a></div>
+      <form class="contact-form reveal" id="inquiry-form"><p class="form-caption">CHECK YOUR DATE</p><div class="form-row"><label>Your name<input name="name" autocomplete="name" maxlength="100" required placeholder="First and last name"></label><label>Email<input name="email" type="email" autocomplete="email" maxlength="200" required placeholder="you@example.com"></label></div><div class="form-row"><label>Event date<input name="date" type="date" required></label><label>Venue / city<input name="venue" maxlength="180" placeholder="Where’s the celebration?" required></label></div><label>Package<select name="package" id="package-select"><option>Still deciding</option><option>Reception</option><option selected>Ceremony & Reception</option><option>All-Day Audio</option></select></label><label>Anything else?<textarea name="message" rows="3" maxlength="2500" placeholder="Guest count, favorite songs…"></textarea></label><label class="honeypot" aria-hidden="true" tabindex="-1">Leave this empty<input name="company" tabindex="-1" autocomplete="off"></label><label>Music style<select name="vibe" id="vibe-input"><option>Still deciding</option><option>Classics & soul</option><option>Throwbacks</option><option>Dance-floor energy</option><option>A mix of everything</option></select></label><button class="button submit" type="submit">Try the inquiry form <span aria-hidden="true">+</span></button><p class="form-disclosure">Preview only. Use sample details. Saved here; not sent to Space Coast Sounds. No booking is made.</p><div id="form-status" class="form-status" role="status" aria-live="polite"></div></form>
     </section>
   </main>
-  <footer><a class="brand footer-brand" href="#top"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>SPACE COAST<br><strong>SOUNDS</strong></span></a><p>Your day. Your people. Your soundtrack.</p><div><a href="https://www.instagram.com/spacecoastsounds/" target="_blank" rel="noopener noreferrer">Instagram</a><span>Independent website concept · 2026</span></div></footer>
-  <div class="preview-badge">WEBSITE CONCEPT <span>·</span> PREVIEW ONLY</div>
+  <footer><a class="brand footer-brand" href="#top"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>SPACE COAST<br><strong>SOUNDS</strong></span></a><p>Every moment. Amplified.</p><div><a href="https://www.instagram.com/spacecoastsounds/" target="_blank" rel="noopener noreferrer">Instagram</a><span>Independent website concept · 2026</span></div></footer>
+  <div class="preview-badge">CONCEPT PREVIEW</div>
 </body>
 </html>

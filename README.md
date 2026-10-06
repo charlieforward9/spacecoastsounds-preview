@@ -1,6 +1,6 @@
 # Space Coast Sounds website concept
 
-A standalone wedding DJ website with an interactive Three.js dance-floor room, animated package comparison, optional original synthesized audio, a music preference selector, a demo inquiry form, and the owner's Instagram link.
+A standalone wedding DJ website with three independent Three.js scenes, an interactive package comparison, optional original synthesized audio, a demo inquiry form, and the owner's Instagram link.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ The form clearly identifies itself as a preview and requests sample details. It 
 
 Confirm all prices and inclusions with the owner. The eight-row package comparison follows the supplied sheet and uses an em dash for unspecified features. Full source inclusions are available below it. The site does not infer that expensive packages inherit every feature. The personal discount negotiation is outside this repository and is not advertised on the public sample.
 
-The room is a procedural, imagined 3D venue with abstract figures. The cinematic image and fallback are AI-generated concept artwork, not photography from a real Space Coast Sounds event. There are no invented reviews, clients, awards, bookings, or availability claims. The music preference selector uses authored directions; it is not an AI chatbot.
+The scenes are procedural, imagined venues with stylized figures. The fallback image is AI-generated concept artwork. These are not real Space Coast Sounds events. There are no invented reviews, clients, awards, bookings, or availability claims. The music style dropdown saves the visitor's choice with the test inquiry.
 
 ## Included assets
 
@@ -38,6 +38,8 @@ The room is a procedural, imagined 3D venue with abstract figures. The cinematic
 
 ## Motion and fallback
 
-Motion includes masked character entrances, a moving marquee, scroll reveals, a pinned cinematic image sequence on desktop, image parallax on phones, magnetic buttons, pointer camera movement, and an audio-reactive beat drop. The comparison highlights the selected package and synchronizes the inquiry form; phones show one selected package beside the feature labels with a sliding tier selector.
+Ceremony has an aisle, floral arch, seated guests, couple, sound system, and sunset terrace. Cocktail hour has a bar, tables, drinks, conversational guest groups, lounge seating, and string lights. The dance floor has a DJ booth, speakers, dancing guests, LED wall and floor, moving light rigs, and a disco ball. Scene changes slide between separate scene graphs and remain interruptible.
 
-The 34-person crowd uses instanced geometry. The scene pauses its rendering when outside the viewport or when the document is hidden. It respects reduced-motion preferences and includes a pause control that also reverts GSAP animations and scroll pinning. Audio stops when the page becomes hidden. WebGL failure displays the concept artwork; no package or form functionality depends on WebGL.
+Mouse movement changes camera azimuth and elevation, aims the dance-floor lights, and projects a light and particle trail onto the floor. Dragging adds direct orbit control. Static architecture is combined by material, and people use instanced geometry. Only the active scene and its outgoing transition are rendered. The comparison highlights the selected package and synchronizes the inquiry form; phones show one selected package with a sliding selector.
+
+The scene pauses rendering outside the viewport or when the document is hidden. Reduced-motion preferences and the pause control stop orbit, scene transitions, particles, shaders, and GSAP motion. Touch scrolling remains available. Audio stops when the page becomes hidden. WebGL failure displays the concept artwork; package and form functionality remain available.

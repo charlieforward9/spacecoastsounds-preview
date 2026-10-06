@@ -1,0 +1,111 @@
+/* The venue is the main event. */
+.hero { grid-template-columns: .72fr 1.28fr; min-height: 740px; gap: 3%; padding-top: 26px; padding-bottom: 44px; }
+.hero h1 { font-size: clamp(44px, 4.55vw, 74px); line-height: 1; }
+.hero .eyebrow { font-size: 10px; letter-spacing: .1em; }
+.hero-description { font-size: 15px; max-width: 250px; }
+.hero-actions { gap: 18px; margin-top: 27px; flex-wrap: wrap; }
+.hero-actions .button { padding: 15px 20px; font-size: 13px; }
+.hero-actions .text-link { font-size: 12px; }
+.stage-shell { min-height: 660px; border-radius: 15px; background: radial-gradient(ellipse at 50% 42%, #2b2c4a, #121b27 55%, #0b1019 90%); transition: background 1s, border-color .6s; border-color: #383949; }
+.stage-shell[data-scene=ceremony] { background: radial-gradient(ellipse at 50% 35%, #6a504238, #2b2724 55%, #191d1e 90%); border-color: #685849; }
+.stage-shell[data-scene=cocktail] { background: radial-gradient(ellipse at 50% 38%, #5f3b5966, #302738 55%, #171b28 90%); border-color: #624757; }
+.stage-aura { display: none; }
+.stage-top { padding: 24px 24px 0; }
+.stage-label { color: #e9d7e8; letter-spacing: .15em; font-size: 10px; }
+.stage-shell[data-scene=ceremony] .stage-label { color: #f5d0a5; }
+.stage-shell[data-scene=cocktail] .stage-label { color: #efbbaa; }
+#stage { inset: 48px -13px 130px; }
+.stage-wordmark { bottom: 122px; left: 23px; display: flex; align-items: center; gap: 12px; line-height: 1; pointer-events: none; color: #bdd5ef; }
+.stage-wordmark b { font-size: 37px; font-weight: 400; letter-spacing: -.07em; opacity: .65; }
+.stage-wordmark span { font-size: 10px; text-transform: uppercase; margin: 0; letter-spacing: .1em; display: block; color: #e0d9e8; }
+.stage-shell[data-scene=ceremony] .stage-wordmark { color: #edc28f; }
+.stage-shell[data-scene=cocktail] .stage-wordmark { color: #ecb7a7; }
+.stage-controls { padding: 0 17px; flex-wrap: nowrap; gap: 9px; }
+.mode-switch { width: auto; flex: 1; padding: 4px; border-radius: 7px; background: #09101dcc; border-color: #3a4157; display: flex; }
+.mode-switch button { flex: 1; padding: 12px 9px; font-size: 11px; border-radius: 4px; transition: background .3s, color .3s; }
+.mode-switch button[aria-pressed=true] { background: #d6e8ff; color: #0c1930; }
+.stage-shell[data-scene=ceremony] .mode-switch button[aria-pressed=true] { background: #f2d4b0; color: #38271c; }
+.stage-shell[data-scene=cocktail] .mode-switch button[aria-pressed=true] { background: #e9bdd1; color: #322031; }
+.scene-tools { position: static; gap: 5px; }
+.scene-tools button { min-height: 44px; border-radius: 6px; border-color: #3a4157; background: #09101dcc; padding: 11px; }
+.scene-tools button:first-child span { display: none; }
+.scene-tools button[hidden] { display: none; }
+.stage-note { font-size: 9px; padding: 15px 23px 20px; flex-direction: row; color: #97a4b7; }
+.stage-note span:last-child { opacity: .7; }
+.drop-button { bottom: 116px; right: 21px; background: #121e33ed; border-color: #6c78a0; }
+.drop-button[hidden] { display: none; }
+.drop-play { background: #d6e8ff; color: #111c31; }
+.drop-tempo { color: #a2abc4; border-color: #69728e; }
+.drop-button:hover { border-color: #cae8ff; background: #263250; }
+.room-cursor { width: 56px; height: 56px; font-size: 8px; border-color: #e2efff88; color: #eff7ff; backdrop-filter: blur(2px); }
+.room-cursor i { display: none; }
+.room-cursor span { font-size: 7px; letter-spacing: .14em; }
+.room-cursor.is-dragging { border-color: #cafa63; background: #cafa6318; }
+.ticker { padding: 21px 0; }
+.ticker .ticker-track { font-size: clamp(47px, 5.4vw, 81px); }
+.packages { padding-top: 75px; padding-bottom: 65px; }
+.packages .section-heading { margin-bottom: 27px; }
+.packages .section-heading > p { font-size: 12px; }
+.comparison-corner i, .tier-kicker { display: none; }
+.tier-button { min-height: 154px; padding-top: 24px; padding-bottom: 20px; }
+.tier-title { min-height: 40px; }
+.tier-selected { top: 12px; right: 12px; }
+.comparison-table .comparison-corner > span { font-size: 10px; }
+.comparison-table td, .comparison-table th { padding-top: 13px; padding-bottom: 13px; }
+.comparison-footer { padding: 21px 24px; }
+.comparison-key { font-size: 10px; margin-top: 5px; }
+.package-source { margin-top: 16px; }
+.contact { padding-top: 60px; padding-bottom: 70px; border-top: 1px solid #29312c; }
+.contact-copy > p:not(.eyebrow) { font-size: 14px; }
+.contact-form { max-width: 650px; }
+.contact-copy h2 { font-size: clamp(43px, 5.5vw, 82px); line-height: 1.06; }
+.contact-form .form-caption { display: none; }
+.instagram-link { margin-top: 27px; }
+.instagram-link strong { font-size: 13px; margin: 0; }
+footer { padding-top: 28px; padding-bottom: 48px; }
+footer > p { display: none; }
+@media (min-width: 761px) and (max-width: 899px) {
+  .hero { min-height: 0; padding-top: 35px; gap: 27px; }
+  .hero h1 { font-size: 73px; }
+  .hero-copy { display: grid; grid-template-columns: 1fr .8fr; align-items: end; column-gap: 20px; }
+  .hero-copy .eyebrow { grid-column: 1 / -1; }
+  .hero-copy h1 { grid-row: 2 / 4; }
+  .hero-description { margin-bottom: 5px; }
+  .hero-actions { margin-top: 15px; margin-bottom: 9px; }
+  .stage-shell { min-height: 610px; }
+}
+@media (max-width: 760px) {
+  .hero { padding-top: 32px; padding-bottom: 28px; min-height: 0; gap: 27px; }
+  .hero h1 { font-size: clamp(40px, 11vw, 74px); margin-top: 18px; margin-bottom: 20px; }
+  .hero-description { font-size: 14px; max-width: none; }
+  .hero-actions { margin-top: 20px; }
+  .stage-shell { min-height: 510px; }
+  #stage { inset: 43px -13px 127px; }
+  .stage-top { padding: 20px 17px 0; }
+  .stage-label { font-size: 9px; }
+  .stage-top .micro { font-size: 8px; }
+  .stage-wordmark { left: 17px; bottom: 125px; gap: 7px; }
+  .stage-wordmark b { font-size: 29px; }
+  .stage-wordmark span { font-size: 8px; max-width: 100px; }
+  .drop-button { right: 14px; bottom: 122px; font-size: 9px; padding: 7px 9px 7px 7px; gap: 7px; min-height: 38px; }
+  .drop-play { width: 23px; height: 23px; }
+  .drop-tempo { display: none; }
+  .stage-controls { padding: 0 11px; gap: 5px; }
+  .mode-switch { min-width: 0; }
+  .mode-switch button { padding: 11px 5px; font-size: 9px; }
+  .scene-tools button { padding: 10px 6px; min-height: 42px; }
+  .scene-tools svg { width: 14px; height: 14px; }
+  .stage-note { padding: 13px 16px 18px; font-size: 8px; }
+  .ticker { padding: 18px 0; }
+  .ticker .ticker-track { font-size: 49px; }
+  .packages { padding-top: 45px; padding-bottom: 40px; }
+  .tier-button { min-height: 147px; }
+  .tier-title { min-height: 0; font-size: 14px; }
+  .comparison-top { height: 41px; }
+  .comparison-footer { padding: 19px 16px; }
+  .comparison-table td, .comparison-table th { padding-top: 14px; padding-bottom: 14px; }
+  .contact { padding-top: 43px; padding-bottom: 45px; }
+  .contact-copy h2 { font-size: 49px; }
+}
+@media (prefers-reduced-motion: reduce) { .stage-shell, .mode-switch button { transition: none; } }
+.motion-paused .stage-shell, .motion-paused .mode-switch button { transition: none; }
