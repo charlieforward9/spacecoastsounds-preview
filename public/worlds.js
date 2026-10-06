@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
 
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
-import { createPlaceBuilder } from './places.js?v=20261005-minimal';
-import { createMaterials } from './materials.js?v=20261005-minimal';
-import { CrowdSolver } from './crowd.js?v=20261005-minimal';
-import { tiers, audioProfile } from './packages.js?v=20261005-minimal';
-import { SceneBlend, SCENES } from './blend.js?v=20261005-minimal';
+import { createPlaceBuilder } from './places.js?v=20261006-people';
+import { createMaterials } from './materials.js?v=20261006-people';
+import { CrowdSolver } from './crowd.js?v=20261006-people';
+import { createCrowdModels } from './people.js?v=20261006-people';
+import { tiers, audioProfile } from './packages.js?v=20261006-people';
+import { SceneBlend, SCENES } from './blend.js?v=20261006-people';
 
 export class SceneTransition extends SceneBlend {
   constructor(worlds,mode='ceremony'){super(mode);this.worlds=worlds;Object.values(worlds).forEach(w=>{w.group.position.set(0,0,0);w.group.scale.setScalar(1);});this.syncVisibility();}
@@ -17,7 +18,7 @@ export class SceneTransition extends SceneBlend {
 }
 
 // Two authored places, one persistent crowd and equipment rig, three lighting/layout states.
-export async function createWorlds({yieldToMain=false}={}) {
+export async function createWorlds({yieldToMain=false,coarse=false}={}) {
   const yieldWork=async()=>{if(yieldToMain)await new Promise(resolve=>setTimeout(resolve,0));};
   let seed=428;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -34,83 +35,7 @@ export async function createWorlds({yieldToMain=false}={}) {
   function tube(parent,points,mat,radius=.025){
     return mesh(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),40,radius,6,false),mat,[0,0,0]);
   }
-  const personGeometry={
-    torso:new THREE.LatheGeometry([new THREE.Vector2(.17,-.40),new THREE.Vector2(.16,-.15),new THREE.Vector2(.205,.13),new THREE.Vector2(.23,.30),new THREE.Vector2(.11,.40)],16),head:new THREE.SphereGeometry(.135,16,12),
-    limb:new THREE.CylinderGeometry(.054,.064,1,9),leg:new THREE.CylinderGeometry(.066,.081,1,9),
-    hair:new THREE.SphereGeometry(.143,14,10,0,Math.PI*2,0,Math.PI*.48),shoe:new THREE.SphereGeometry(.09,10,8),
-    dress:new THREE.LatheGeometry([new THREE.Vector2(.30,-.36),new THREE.Vector2(.25,-.15),new THREE.Vector2(.16,.22),new THREE.Vector2(.18,.36)],20),neck:new THREE.CylinderGeometry(.06,.065,.14,12),eye:new THREE.SphereGeometry(.02,8,6),nose:new THREE.SphereGeometry(.030,8,6),ear:new THREE.SphereGeometry(.023,8,6),shirt:new THREE.BoxGeometry(1,1,1)
-  };
-  const clothes=[0x293244,0xb7a994,0x546674,0xe0bdad,0x70585d,0x9a9c7b,0xd1dad1];
-  const skins=[0xe5bfa2,0xc49273,0x95654d,0x654431,0xdab494];
-  const dummy=new THREE.Object3D(),start=new THREE.Vector3(),end=new THREE.Vector3(),direction=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
-  function people(parent,guests,kind){
-    const count=guests.length;
-    const parts={torso:[personGeometry.torso,count],head:[personGeometry.head,count],hair:[personGeometry.hair,count],arms:[personGeometry.limb,count*4],hands:[personGeometry.head,count*2],legs:[personGeometry.leg,count*4],shoes:[personGeometry.shoe,count*2],dress:[personGeometry.dress,count],neck:[personGeometry.neck,count],eyes:[personGeometry.eye,count*2],pupils:[personGeometry.eye,count*2],nose:[personGeometry.nose,count],ears:[personGeometry.ear,count*2],shirt:[personGeometry.shirt,count],tie:[personGeometry.shirt,count]};
-    const shadowSize=32,shadowPixels=new Uint8Array(shadowSize*shadowSize*4);
-    for(let sy=0;sy<shadowSize;sy++)for(let sx=0;sx<shadowSize;sx++){
-      const offset=(sy*shadowSize+sx)*4,r=Math.hypot((sx+.5)/shadowSize*2-1,(sy+.5)/shadowSize*2-1);
-      shadowPixels[offset+3]=Math.round(Math.max(0,1-r)**2*92);
-    }
-    const shadowTexture=new THREE.DataTexture(shadowPixels,shadowSize,shadowSize);shadowTexture.needsUpdate=true;
-    const shadows=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:shadowTexture,transparent:true,depthWrite:false,color:0x151c22}),count);
-    shadows.rotation.x=-Math.PI/2;shadows.position.y=.052;parent.add(shadows);
-    guests.forEach((guest,i)=>{dummy.position.set(guest.x,-guest.z,0);dummy.rotation.set(0,0,0);dummy.scale.set(.65,.9,1);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);});
-    const instances={};
-    for(const [name,[geometry,size]]of Object.entries(parts)){
-      const skinPart=['head','hands','neck','nose','ears'].includes(name);const mat=skinPart?palette.skin:['eyes','pupils','tie'].includes(name)?material(name==='eyes'?0xe3d9c9:0x232524,{roughness:.5}):palette.cloth;const object=new THREE.InstancedMesh(geometry,mat,size);object.instanceMatrix.setUsage(THREE.DynamicDrawUsage);object.frustumCulled=false;object.castShadow=name!=='hair';object.receiveShadow=true;parent.add(object);object.name='Persistent guest '+name;object.userData.actorIds=guests.map(g=>g.id);instances[name]=object;
-    }
-    guests.forEach((guest,i)=>{
-      guest.phase=random()*Math.PI*2;guest.height=guest.height||(.92+random()*.13);
-      const cloth=new THREE.Color(guest.color||clothes[i%clothes.length]),skin=new THREE.Color(skins[i%skins.length]);
-      for(const key of ['torso','dress'])instances[key].setColorAt(i,cloth);
-      for(const key of ['head','neck','nose'])instances[key].setColorAt(i,skin);instances.shirt.setColorAt(i,new THREE.Color(0xf0efe9));instances.hair.setColorAt(i,new THREE.Color(i%3?0x352b28:0x72604d));
-      for(let side=0;side<2;side++){
-        instances.hands.setColorAt(i*2+side,skin);instances.ears.setColorAt(i*2+side,skin);instances.legs.setColorAt(i*4+side*2,new THREE.Color(0x242b36));instances.legs.setColorAt(i*4+side*2+1,new THREE.Color(0x242b36));instances.shoes.setColorAt(i*2+side,new THREE.Color(0x151b24));
-        instances.arms.setColorAt(i*4+side*2,cloth);instances.arms.setColorAt(i*4+side*2+1,skin);
-      }
-    });
-    function set(part,index,x,y,z,sx=1,sy=1,sz=1,ry=0,rz=0){
-      dummy.position.set(x,y,z);dummy.scale.set(sx,sy,sz);dummy.rotation.set(0,ry,rz);dummy.updateMatrix();instances[part].setMatrixAt(index,dummy.matrix);
-    }
-    function bone(part,index,a,b,radiusScale=1){
-      start.set(...a);end.set(...b);direction.subVectors(end,start);dummy.position.copy(start).add(end).multiplyScalar(.5);
-      const length=direction.length();dummy.quaternion.setFromUnitVectors(up,direction.normalize());dummy.scale.set(radiusScale,length,radiusScale);dummy.updateMatrix();instances[part].setMatrixAt(index,dummy.matrix);
-    }
-    let lastTime=0,phaseClock=0;
-    function update(time,beat=0,weights=[1,0,0]){
-      const cocktailMix=weights[1],danceMix=weights[2];phaseClock+=Math.max(0,Math.min(.08,time-lastTime))*(1.15+(Math.PI*2-1.15)*danceMix);lastTime=time;
-      guests.forEach((g,i)=>{
-        const h=g.height,phase=phaseClock+g.phase;
-        const dancing=danceMix*(g.dj?0:1),energy=.11+.89*dancing;
-        const sway=Math.sin(phase)*.15*energy,bounce=(Math.sin(phase*2)+1)*.055*energy+beat*.035*energy;
-        const seated=g.seated||0,base=-.18*seated,x=g.x,y=base+bounce,z=g.z,turn=(g.turn||0)+Math.sin(phase*.5)*.18*energy;
-        set('torso',i,x,y+1.03*h,z,.95,h,.66,turn,Math.sin(phase)*.12*energy);
-        set('head',i,x+sway*.2,y+1.55*h,z,.90,1.12*h,.92,turn);set('neck',i,x,y+1.39*h,z,1,h,1,turn);
-        set('hair',i,x+sway*.2,y+1.55*h,z-.011,.93,1.12*h,.97,turn);
-        set('dress',i,x,y+.58*h,z,g.dress?1:.001,g.dress?h:.001,g.dress?1:.001,turn);
-        const cos=Math.cos(turn),sin=Math.sin(turn);
-        const local=(dx,dy,dz)=>[x+dx*cos+dz*sin,y+dy*h,z-dx*sin+dz*cos];
-        set('nose',i,...local(0,1.56,.126),.63,.9,1.0,turn);
-        set('shirt',i,...local(0,1.19,.137),g.dress?.001:.125,g.dress?.001:.34,.018,turn);
-        set('tie',i,...local(0,1.30,.152),g.dress?.001:.063,g.dress?.001:.044,.026,turn);
-        for(let side=0;side<2;side++){const sign=side?1:-1;set('eyes',i*2+side,...local(sign*.047,1.589,.109),.82,.59,.42,turn);set('pupils',i*2+side,...local(sign*.047,1.589,.119),.33,.42,.23,turn);set('ears',i*2+side,...local(sign*.122,1.55,-.008),.65,1.15,.6,turn);}
-        for(let side=0;side<2;side++){
-          const sign=side?1:-1,raised=dancing*(i%3!==0?1:0),reach=.20+.09*raised;
-          const shoulder=local(sign*.20,1.23,0);
-          const elbow=local(sign*(.28+.12*raised),.95+raised*(.50+Math.sin(phase+side)*.15),.02+seated*.10);
-          const hand=local(sign*reach,.71+raised*(1.22+Math.sin(phase+side)*.12)+(g.dj?.77*(cocktailMix+danceMix):side===1?.49*cocktailMix:0),g.dj?.46*(cocktailMix+danceMix):.09+.26*seated+(side===1?.19*cocktailMix:0));
-          bone('arms',i*4+side*2,shoulder,elbow);bone('arms',i*4+side*2+1,elbow,hand,.88);
-          set('hands',i*2+side,...hand,.38,.48,.38,turn);
-          const hip=local(sign*.105,.72,0),foot=local(sign*.13,.07+.18*seated,.52*seated+(1-seated)*Math.sin(phase+side*Math.PI)*.17*energy);
-          const knee=local(sign*.12,.39+.27*seated,.44*seated+(1-seated)*(.035+Math.sin(phase+side*Math.PI)*.08*energy));bone('legs',i*4+side*2,hip,knee,1.04);bone('legs',i*4+side*2+1,knee,foot,.82);
-          set('shoes',i*2+side,...foot,.85,.55,1.65,turn);
-        }
-      });
-      guests.forEach((guest,i)=>{dummy.position.set(guest.x,-guest.z,0);dummy.rotation.set(0,0,0);dummy.scale.set(.65,.9,1);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);});shadows.instanceMatrix.needsUpdate=true;
-      Object.values(instances).forEach(object=>object.instanceMatrix.needsUpdate=true);
-    }
-    update(0);return update;
-  }
+  const dummy=new THREE.Object3D();
   function speaker(parent,x,z,small=false){
     const group=new THREE.Group();parent.add(group);group.position.set(x,0,z);const size=small?.7:1;
     box(group,palette.black,0,1.4*size,0,1.12*size,2.65*size,.85*size);
@@ -154,7 +79,7 @@ export async function createWorlds({yieldToMain=false}={}) {
   }
   const actors=Array.from({length:33},(_,i)=>({id:`guest-${i}`,x:0,z:0,turn:0,seated:0,dj:i===27,dress:i===24||(i<24&&i%3===1),color:i===24?0xffffff:i===25?0x28313d:undefined,height:i===27?1.1:undefined,layouts:SCENES.map(name=>({...layouts[name][i]}))}));
   actors.forEach(g=>{const base=g.layouts[0].turn??0;g.layouts.forEach(p=>p.turn=base+Math.atan2(Math.sin((p.turn??0)-base),Math.cos((p.turn??0)-base)));});
-  const crowdUpdate=people(shared,actors,'shared'),solver=new CrowdSolver(actors),targets=actors.map(()=>({x:0,z:0}));
+  const crowdModels=createCrowdModels(shared,actors,palette,random,{coarse}),solver=new CrowdSolver(actors),targets=actors.map(()=>({x:0,z:0}));
   const seats=actors.slice(0,24).map((g,i)=>{const object=chair(shared,g.layouts[0].x,g.layouts[0].z);object.userData.dynamic=true;object.name=`Persistent chair ${i}`;const side=g.layouts[0].x<0?-1:1,rank=Math.floor(i/6)*3+i%3;return {object,layouts:[{...g.layouts[0],turn:0},{x:side*6.45,z:-3.3+rank*.58,turn:side*Math.PI/2},{x:side*6.55,z:-3.3+rank*.58,turn:side*Math.PI/2}]};});
   const tables=[],glassGeometry=new THREE.LatheGeometry([new THREE.Vector2(.001,0),new THREE.Vector2(.025,.015),new THREE.Vector2(.052,.045),new THREE.Vector2(.070,.11),new THREE.Vector2(.064,.18)],16);
   for(let i=0;i<4;i++){
@@ -216,13 +141,13 @@ export async function createWorlds({yieldToMain=false}={}) {
    const rectangle=(object,hx,hz,owner=-1,weight=1)=>{obstacles.push({kind:'box',x:object.position.x,z:object.position.z,hx:hx*object.scale.x,hz:hz*object.scale.z,cos:Math.cos(object.rotation.y),sin:Math.sin(object.rotation.y),owner,weight});};
    seats.forEach((seat,i)=>addFurniture(seat.object,{kind:'box',hx:.29,hz:.32,cos:Math.cos(seat.object.rotation.y),sin:Math.sin(seat.object.rotation.y),owner:i}));tables.forEach(table=>addFurniture(table.object,{kind:'circle',radius:.68}));
    if(booth.visible)rectangle(booth,1.70,.55);speakerObjects.forEach(s=>{if(s.holder.visible)rectangle(s.holder,.66,.55);});microphones.forEach(m=>{if(m.group.visible)obstacles.push({kind:'circle',x:m.group.position.x,z:m.group.position.z,radius:.13*m.scale,weight:1});});
-   obstacles.push({kind:'box',x:0,z:-5.45,hx:2.95,hz:.60,cos:1,sin:0,weight:beachWeight},{kind:'circle',x:3.35,z:-5.4,radius:.72,weight:weights[0]});
+   obstacles.push({kind:'box',x:0,z:-5.45,hx:2.95,hz:.60,cos:1,sin:0,weight:beachWeight},{...ceremonyPlace.tree.collision,weight:weights[0]});
    for(const x of [-7.7,7.7])for(const z of [-6,-.5,5])obstacles.push({kind:'circle',x,z,radius:.20,weight:beachWeight});
    solver.bounds.x=7.1+beachWeight*1.1;solver.bounds.maxZ=7.1-beachWeight*1.15;
    solver.step(targets,obstacles,dt,{instant,key:weights.join(',')+':'+selectedTier});
    obstacles.forEach(o=>{if(o.object){o.offset.x=o.x-o.targetX;o.offset.z=o.z-o.targetZ;o.object.position.x=o.x;o.object.position.z=o.z;}});
    seats.forEach((seat,i)=>{seat.object.updateMatrix();chairInstances.forEach(object=>object.setMatrixAt(i,seat.object.matrix));});chairInstances.forEach(object=>object.instanceMatrix.needsUpdate=true);
-   actors.forEach((g,i)=>{g.x=solver.x[i];g.z=solver.z[i];});crowdUpdate(time,beat,weights);
+   actors.forEach((g,i)=>{g.x=solver.x[i];g.z=solver.z[i];});crowdModels.update(time,beat,weights,dt);
    receiver.visible=coverage>.002;
    disco.rotation.y=time*.26;lights.forEach(({pivot,mat},i)=>{pivot.rotation.z=Math.sin(time*.52+i)*.38+pointer.x*.16;pivot.rotation.x=.34+Math.cos(time*.35+i*.7)*.18+pointer.y*.10;mat.opacity=.022*nightMix;});spotlights.forEach((spot,i)=>{spot.target.position.set((i?2:-2)+pointer.x*2+Math.sin(time*.4+i),.2,-.3+pointer.y);spot.intensity=nightMix*(80+beat*35);});
    for(let i=0;i<16;i++){dummy.position.set(-1.15+i*.15,.85,.563);dummy.rotation.set(0,0,0);dummy.scale.set(.035,.3*(.25+night*(Math.abs(Math.sin(time*3.4+i*.6))*1.5+beat*.4)),.016);dummy.updateMatrix();equalizer.setMatrixAt(i,dummy.matrix);}equalizer.instanceMatrix.needsUpdate=true;
@@ -232,11 +157,11 @@ export async function createWorlds({yieldToMain=false}={}) {
   }
   const interiorProfile={azimuth:-.045,elevation:.065,radius:5.4,lookY:1.45,lookZ:-2.1,fov:65,interior:1};
   const worlds={
-   ceremony:{group:ceremony,guests:actors.length,profile:{azimuth:.025,elevation:.035,radius:13.2,lookY:2.45,lookZ:-2.4,fov:58,interior:.35},landmark:ceremonyPlace.tower,terrain:ceremonyPlace.terrain},
+   ceremony:{group:ceremony,guests:actors.length,profile:{azimuth:.025,elevation:.035,radius:13.2,lookY:2.45,lookZ:-2.4,fov:58,interior:.35},landmark:ceremonyPlace.tower,tree:ceremonyPlace.tree,terrain:ceremonyPlace.terrain},
    cocktail:{group:pavilion,guests:actors.length,profile:{...interiorProfile},pavilion:beach},
    party:{group:pavilion,guests:actors.length,profile:{...interiorProfile},pavilion:beach}
   };
-  const rig={group:shared,pavilion,actors,solver,obstacles,seats,chairInstances,tables,speakers:speakerObjects,microphones,update,setTier,getTier:()=>selectedTier,
+  const rig={group:shared,pavilion,actors,solver,crowdModels,obstacles,seats,chairInstances,tables,speakers:speakerObjects,microphones,update,setTier,getTier:()=>selectedTier,
    showEnvironment(name){ceremony.visible=name==='ceremony';pavilion.visible=name!=='ceremony';},
    syncVisibility(weights){ceremony.visible=weights[0]>1e-5;pavilion.visible=weights[1]+weights[2]>1e-5;},
    environmentDome(name){const dome=(name==='ceremony'?ceremonyPlace.dome:beach.dome).clone();dome.material=dome.material.clone();if(name!=='ceremony'){const night=name==='party';dome.material.uniforms.horizon.value.copy(night?nightHorizon:dayHorizon);dome.material.uniforms.zenith.value.copy(night?nightZenith:dayZenith);dome.material.uniforms.night.value=night?1:0;}return dome;}

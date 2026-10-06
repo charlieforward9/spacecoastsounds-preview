@@ -1,4 +1,4 @@
-import { tiers } from './packages.js?v=20261005-minimal';
+import { tiers } from './packages.js?v=20261006-people';
 export { tiers };
 export const features = [
   {label:'Ceremony',icon:'rings',symbols:[[],['vows'],['ceremonyAudio']],excluded:[true,false,false],values:[null,'Ceremony audio','Ceremony audio']},

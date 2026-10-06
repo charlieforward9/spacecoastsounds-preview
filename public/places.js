@@ -66,7 +66,7 @@ export function createPlaceBuilder(palette){
   group.userData.height=13.45;return group;
  }
  function banyan(parent){
-  const group=new THREE.Group();group.name='Banyan canopy and aerial roots';group.position.set(3.35,0,-5.4);parent.add(group);const random=seeded(1328);
+  const group=new THREE.Group();group.name='Banyan canopy and aerial roots';group.position.set(3.35,0,-5.4);group.scale.set(1.40,1.25,1.35);parent.add(group);const random=seeded(1328);
   for(let i=0;i<7;i++){const a=i*.89,r=.3+random()*.5;branch(group,[[Math.cos(a)*r,0,Math.sin(a)*r],[Math.cos(a)*.44,1.9,Math.sin(a)*.42],[Math.cos(a)*.65,3.6,Math.sin(a)*.7]],.25+random()*.13);}
   for(let i=0;i<13;i++){
    const a=i*Math.PI*2/13,reach=4.5+random()*2.6;
@@ -81,7 +81,7 @@ export function createPlaceBuilder(palette){
   function foliagePoint(){const a=random()*Math.PI*2,r=Math.sqrt(random())*7.0;return [Math.cos(a)*r,5.7+Math.sin(r/7*Math.PI)*.90+(random()-.5)*.75,Math.sin(a)*r*.68];}
   for(let i=0;i<95;i++){const [x,y,z]=foliagePoint();dummy.position.set(x,y,z);dummy.rotation.set(random(),random(),random());dummy.scale.set(.6+random()*.8,.35+random()*.45,.6+random()*.8);dummy.updateMatrix();crowns.setMatrixAt(i,dummy.matrix);crowns.setColorAt(i,new THREE.Color().setHSL(.25+random()*.07,.26+random()*.10,.13+random()*.11));}
   for(let i=0;i<2400;i++){const [x,y,z]=foliagePoint();dummy.position.set(x,y+.12,z);dummy.rotation.set(random()*Math.PI,random()*Math.PI*2,random()*Math.PI);dummy.scale.setScalar(.17+random()*.20);dummy.updateMatrix();leaves.setMatrixAt(i,dummy.matrix);leaves.setColorAt(i,new THREE.Color().setHSL(.23+random()*.07,.3,.22+random()*.15));}
-  return time=>{canopy.rotation.z=Math.sin(time*.36)*.008;canopy.rotation.y=Math.sin(time*.22)*.008;};
+  return {group,collision:{kind:'circle',x:group.position.x,z:group.position.z,radius:.72*Math.max(group.scale.x,group.scale.z)},update(time){canopy.rotation.z=Math.sin(time*.36)*.008;canopy.rotation.y=Math.sin(time*.22)*.008;}};
  }
  function palm(parent,x,z,height=7){
   const group=new THREE.Group();parent.add(group);const sway=.55;branch(group,[[x,0,z],[x+sway*.45,height*.55,z+.1],[x+sway,height,z]],.16,palette.bark);
@@ -164,9 +164,9 @@ export function createPlaceBuilder(palette){
   for(const x of [12,13.3,14.6])box(group,palette.darkWood,x,1.5+lighthouseTerrainHeight(13.3,-11),-9.36,.64,1.75,.045);
   return {ground,top,sites};
  }
- function ceremony(parent){const dome=sky(parent,'ceremony'),land=terrain(parent),updateWater=water(parent);box(parent,palette.wood,0,-.035,.75,15,.07,13);const tower=lighthouse(parent),updateTree=banyan(parent);
+ function ceremony(parent){const dome=sky(parent,'ceremony'),land=terrain(parent),updateWater=water(parent);box(parent,palette.wood,0,-.035,.75,15,.07,13);const tower=lighthouse(parent),tree=banyan(parent);
   for(const x of [-7.2,7.2]){box(parent,palette.ivory,x,.48,.8,.08,.05,12.6);for(let z=-5;z<=7;z+=1.1)box(parent,palette.ivory,x,.26,z,.045,.52,.045);}
-  return {tower,dome,terrain:land,update(time){updateWater(time);updateTree(time);}};
+  return {tower,dome,tree,terrain:land,update(time){updateWater(time);tree.update(time);}};
  }
  function beachHouse(parent,night){const dome=sky(parent,night?'party':'cocktail');box(parent,palette.gravel,0,-.19,4.0,70,.22,50);const structure=pavilion(parent,night);return {...structure,dome};}
  return {ceremony,beachHouse};

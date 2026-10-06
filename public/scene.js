@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-minimal';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-people';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261005-minimal';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261005-minimal';
-import { TouchOrbitIntent } from './touch-orbit.js?v=20261005-minimal';
+import { SCENES, smoothstep } from './blend.js?v=20261006-people';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261006-people';
+import { TouchOrbitIntent } from './touch-orbit.js?v=20261006-people';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -31,7 +31,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   container.append(renderer.domElement);
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(46,1,.1,300);scene.fog=new THREE.FogExp2(0x111827,.021);
   const root=new THREE.Group();scene.add(root);
-  const worlds=await createWorlds({yieldToMain:true});[...new Set(Object.values(worlds).map(world=>world.group))].forEach(group=>{root.add(group);group.visible=false;});root.add(worlds.rig.group);worlds.rig.setTier(initialTier);
+  const worlds=await createWorlds({yieldToMain:true,coarse});[...new Set(Object.values(worlds).map(world=>world.group))].forEach(group=>{root.add(group);group.visible=false;});root.add(worlds.rig.group);worlds.rig.setTier(initialTier);
   let mode=resolvePhase(initialTier,worlds[initialMode]?initialMode:'ceremony');
   const transition=new SceneTransition(worlds,mode);
   function environment(){
@@ -196,7 +196,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
     setBeat(value){if(moving)audioBeat=value;},
     setScroll(){},
     drop(){if(moving){dropStarted=elapsed;dragTarget.set(0,0);needsRender=true;schedule();}},
-    getStats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,scene:mode,tier:worlds.rig.getTier(),crowd:worlds[mode].guests,moving,renderPixels:renderer.domElement.width*renderer.domElement.height,quality,shadowMap:renderer.shadowMap.enabled,webgl:true};},
-    dispose(){disposed=true;stop();resizeObserver.disconnect();visibilityObserver.disconnect();release();container.removeEventListener('pointermove',point);container.removeEventListener('pointerleave',leave);container.removeEventListener('pointerdown',down);container.removeEventListener('pointerup',release);container.removeEventListener('pointercancel',release);document.removeEventListener('visibilitychange',visibilityChange);window.removeEventListener('scroll',invalidateBounds);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('webglcontextrestored',restored);blendTargets.forEach(target=>target.dispose());Object.values(shadowCache).forEach(map=>map?.dispose());floorReflector?.dispose();envTarget.dispose();envMaterial.dispose();envScene.children[0].geometry.dispose();dissolveMaterial.dispose();dissolveScene.children[0].geometry.dispose();Object.values(environmentTargets).forEach(target=>target.dispose());renderer.dispose();}
+    getStats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,scene:mode,tier:worlds.rig.getTier(),crowd:worlds[mode].guests,crowdBatches:worlds.rig.crowdModels.stats.batches,crowdTriangles:worlds.rig.crowdModels.stats.triangles,moving,renderPixels:renderer.domElement.width*renderer.domElement.height,quality,shadowMap:renderer.shadowMap.enabled,webgl:true};},
+    dispose(){disposed=true;stop();resizeObserver.disconnect();visibilityObserver.disconnect();release();container.removeEventListener('pointermove',point);container.removeEventListener('pointerleave',leave);container.removeEventListener('pointerdown',down);container.removeEventListener('pointerup',release);container.removeEventListener('pointercancel',release);document.removeEventListener('visibilitychange',visibilityChange);window.removeEventListener('scroll',invalidateBounds);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('webglcontextrestored',restored);blendTargets.forEach(target=>target.dispose());Object.values(shadowCache).forEach(map=>map?.dispose());floorReflector?.dispose();envTarget.dispose();envMaterial.dispose();envScene.children[0].geometry.dispose();dissolveMaterial.dispose();dissolveScene.children[0].geometry.dispose();Object.values(environmentTargets).forEach(target=>target.dispose());worlds.rig.crowdModels.dispose();renderer.dispose();}
   };
 }
