@@ -1,14 +1,13 @@
-import { tiers } from './packages.js?v=20261006-natural';
+import { tiers } from './packages.js?v=20261006-matrix';
 export { tiers };
+// A proposed package ladder: All-Day builds on the middle package in this concept.
 export const features = [
-  {label:'Ceremony',icon:'rings',symbols:[[],['vows'],['ceremonyAudio']],excluded:[true,false,false],values:[null,'Ceremony audio','Ceremony audio']},
-  {label:'Cocktail',icon:'glass',symbols:[[],['cocktailMusic'],['cocktailAudio']],excluded:[true,false,false],values:[null,'Cocktail hour music','Cocktail hour audio']},
-  {label:'Reception',icon:'record',symbols:[['decks'],['djMC'],['danceAudio']],values:['DJ · entrance, dinner & dancing','Full reception DJ & MC','Reception audio']},
-  {label:'Sound',icon:'speaker',symbols:[['speaker'],['ceremonySpeaker'],['speaker','speaker']],multiple:[false,false,true],values:['Professional sound system','Ceremony audio system','Multiple sound setups']},
+  {label:'Coverage',icon:'rings',symbols:[['decks'],['vows','glass','djMC'],['ceremonyAudio','cocktailAudio','danceAudio']],values:['Reception · up to 4 hours','Ceremony, cocktail hour & reception · up to 6 hours','Ceremony, cocktail hour & reception · up to 8 hours']},
+  {label:'Sound',icon:'speaker',symbols:[['speaker'],['ceremonySpeaker'],['speaker','speaker']],multiple:[false,false,true],values:['Professional sound system','Ceremony & reception sound','Multiple sound setups']},
   {label:'Mics',icon:'mic',symbols:[['toastMic'],['officiantMic'],['mic','mic']],multiple:[false,false,true],values:['Wireless microphone for toasts','Wireless officiant microphone','Additional microphones']},
-  {label:'MC',icon:'voice',symbols:[['announce'],['fullMC'],[]],values:['Basic MC & announcements','Full reception MC',null]},
-  {label:'Planning',icon:'plan',symbols:[['consult'],['playlist'],[]],values:['Pre-wedding planning consultation','Custom music planning',null]},
-  {label:'Timeline',icon:'clock',symbols:[[],['timeline'],['coordinate']],values:[null,'Timeline coordination','Event coordination support']}
+  {label:'DJ + MC',icon:'voice',symbols:[['announce'],['djMC'],['fullMC','coordinate']],values:['Reception DJ · basic MC & announcements','Full reception DJ & MC','Full reception DJ & MC, plus event coordination']},
+  {label:'Music',icon:'playlist',symbols:[['record'],['playlist'],['playlist','danceAudio']],values:['Entrance, dinner & dancing','Custom music planning','Custom music planning across your day']},
+  {label:'Support',icon:'coordinate',symbols:[['consult'],['timeline'],['coordinate']],values:['Pre-wedding planning consultation','Timeline coordination','Event coordination support']}
 ];
 // Each pictogram depicts the actual inclusion, rather than repeating a checkmark.
 const paths={
@@ -40,38 +39,42 @@ const paths={
 };
 export const iconMarkup=name=>`<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name]}</svg>`;
 export function featureSymbols(feature,index){
-  if(!feature.values[index])return feature.excluded?.[index]?iconMarkup('lock'):'<span aria-hidden="true">—</span>';
   return `<span class="feature-symbols${feature.multiple?.[index]?' is-multiple':''}">${(feature.symbols?.[index]??[feature.icon]).map(iconMarkup).join('')}${feature.multiple?.[index]?'<b aria-hidden="true">+</b>':''}</span>`;
 }
 export function mountComparison() {
   const board=document.getElementById('comparison-board'),body=document.getElementById('comparison-body'),packageSelect=document.getElementById('package-select');
-  let selected=1;
+  const cleanups=[];
+  const listen=(element,event,handler)=>{element.addEventListener(event,handler);cleanups.push(()=>element.removeEventListener(event,handler));};
+  const detail=document.createElement('div'),detailIcon=document.createElement('span'),detailCopy=document.createElement('div'),detailName=document.createElement('span'),detailText=document.createElement('p');
+  detail.id='package-detail';detail.className='matrix-detail';detail.setAttribute('role','status');detail.setAttribute('aria-live','polite');detail.setAttribute('aria-atomic','true');
+  detailIcon.className='matrix-detail-icon';detailIcon.setAttribute('aria-hidden','true');detailName.className='matrix-detail-name';detailText.className='matrix-detail-text';detailCopy.append(detailName,detailText);detail.append(detailIcon,detailCopy);
+  let selected=1,activeFeature=0,inspectedTier=1;
   const rows=features.map((feature,rowIndex)=>{
-    const row=document.createElement('div');row.className='feature-row';row.dataset.feature=rowIndex;
-    const summary=document.createElement('div');summary.className='feature-summary';
-    const control=document.createElement('button');control.className='feature-label';control.type='button';control.dataset.disclosure='true';control.innerHTML=`${iconMarkup(feature.icon)}<span>${feature.label}</span><i aria-hidden="true">+</i>`;
-    const detailId=`feature-detail-${rowIndex}`;control.setAttribute('aria-expanded','false');control.setAttribute('aria-controls',detailId);summary.append(control);
-    const toggle=()=>{row.dataset.manual='true';expand(row,!row.classList.contains('is-expanded'));};control.addEventListener('click',toggle);
+    const row=document.createElement('div');row.className='matrix-row';row.dataset.feature=rowIndex;
+    const control=document.createElement('button');control.className='matrix-heading';control.type='button';control.innerHTML=`${iconMarkup(feature.icon)}<span>${feature.label}</span>`;
+    control.setAttribute('aria-controls','package-detail');control.setAttribute('aria-label',`Show ${feature.label.toLowerCase()} details`);row.append(control);
+    listen(control,'click',()=>showDetail(rowIndex));listen(control,'focus',()=>showDetail(rowIndex));
     feature.values.forEach((value,index)=>{
-      const cell=document.createElement('button');cell.type='button';cell.className='feature-icon';cell.dataset.column=index;cell.dataset.available=String(!!value);cell.dataset.disclosure='true';cell.innerHTML=featureSymbols(feature,index);
-      if(!value)cell.classList.add(feature.excluded?.[index]?'is-excluded':'unspecified');
-      const detail=value||(feature.excluded?.[index]?'Not included':'Not listed on the package sheet');cell.setAttribute('aria-label',`${tiers[index].name}: ${detail}`);cell.title=detail;cell.setAttribute('aria-controls',detailId);cell.setAttribute('aria-expanded','false');cell.addEventListener('click',()=>{if(!cell.disabled)toggle();});summary.append(cell);
+      const cell=document.createElement('button');cell.type='button';cell.className='matrix-cell';cell.dataset.column=index;cell.dataset.symbols=feature.symbols[index].length;cell.innerHTML=featureSymbols(feature,index);
+      cell.setAttribute('aria-label',`${tiers[index].name} · ${feature.label}: ${value}`);cell.title=value;cell.setAttribute('aria-controls','package-detail');
+      const inspect=()=>{if(!cell.disabled)showDetail(rowIndex,index);};listen(cell,'click',inspect);listen(cell,'focus',inspect);row.append(cell);
     });
-    const reveal=document.createElement('div');reveal.id=detailId;reveal.className='feature-reveal';reveal.inert=true;reveal.setAttribute('aria-hidden','true');
-    const inner=document.createElement('div');inner.className='feature-detail-grid';inner.append(document.createElement('span'));
-    feature.values.forEach((value,index)=>{const cell=document.createElement('span');cell.dataset.column=index;cell.textContent=value||(feature.excluded?.[index]?'Not included':'Not listed');if(!value)cell.className='unspecified';inner.append(cell);});reveal.append(inner);row.append(summary,reveal);body.append(row);return row;
+    body.append(row);return row;
   });
-  function expand(row,open=true){row.classList.toggle('is-expanded',open);row.querySelectorAll('[data-disclosure]').forEach(control=>control.setAttribute('aria-expanded',String(open)));const reveal=row.querySelector('.feature-reveal');reveal.inert=!open;reveal.setAttribute('aria-hidden',String(!open));}
-  // Reveal once on entry; no continuous scroll calculation or disappearing details.
-  const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting&&scrollY>80&&!entry.target.dataset.manual){expand(entry.target);observer.unobserve(entry.target);}}},{rootMargin:'-20% 0px -18% 0px',threshold:.8});rows.forEach(row=>observer.observe(row));
+  board.append(detail);
+  function showDetail(rowIndex=activeFeature,index=selected??inspectedTier){
+    activeFeature=rowIndex;inspectedTier=index;const feature=features[rowIndex];
+    detailName.textContent=`${tiers[index].title} · ${feature.label}`;detailText.textContent=feature.values[index];detailIcon.innerHTML=iconMarkup(feature.icon);
+    rows.forEach((row,i)=>{const active=i===rowIndex;row.classList.toggle('is-detail',active);row.querySelector('.matrix-heading').setAttribute('aria-pressed',String(active));row.querySelectorAll('[data-column]').forEach(cell=>cell.setAttribute('aria-pressed',String(active&&Number(cell.dataset.column)===index)));});
+  }
   function select(index){
     if(index!==null&&!tiers[index])return;selected=index;board.dataset.selected=index===null?'':index;
     document.querySelectorAll('.package-choice').forEach(button=>{const active=Number(button.dataset.tier)===index,tile=button.closest('.package-tile');button.setAttribute('aria-pressed',String(active));tile.classList.toggle('is-selected',active);tile.classList.toggle('is-inactive',index!==null&&!active);});
-    board.querySelectorAll('[data-column]').forEach(cell=>{const active=Number(cell.dataset.column)===index,inactive=index!==null&&!active;cell.classList.toggle('is-selected',active);cell.classList.toggle('is-inactive',inactive);if(cell.dataset.available!==undefined){cell.disabled=inactive||cell.dataset.available!=='true';cell.setAttribute('aria-disabled',String(cell.disabled));}});
-    packageSelect.value=index===null?'Still deciding':tiers[index].name;board.dispatchEvent(new CustomEvent('tierchange',{detail:{index}}));
+    board.querySelectorAll('[data-column]').forEach(cell=>{const active=Number(cell.dataset.column)===index,inactive=index!==null&&!active;cell.classList.toggle('is-selected',active);cell.classList.toggle('is-inactive',inactive);cell.disabled=inactive;cell.setAttribute('aria-disabled',String(inactive));});
+    showDetail(activeFeature,index??inspectedTier);packageSelect.value=index===null?'Still deciding':tiers[index].name;board.dispatchEvent(new CustomEvent('tierchange',{detail:{index}}));
   }
-  document.querySelectorAll('.package-choice').forEach(button=>button.addEventListener('click',()=>select(Number(button.dataset.tier))));
-  packageSelect.addEventListener('change',()=>{const index=tiers.findIndex(tier=>tier.name===packageSelect.value);select(index<0?null:index);});
+  document.querySelectorAll('.package-choice').forEach(button=>listen(button,'click',()=>select(Number(button.dataset.tier))));
+  listen(packageSelect,'change',()=>{const index=tiers.findIndex(tier=>tier.name===packageSelect.value);select(index<0?null:index);});
   select(1);
-  return {select,getSelectedIndex:()=>selected,getSelected:()=>tiers[selected]??{name:'Still deciding'},setMotion(value){board.classList.toggle('instant',!value);},dispose(){observer.disconnect();}};
+  return {select,getSelectedIndex:()=>selected,getSelected:()=>tiers[selected]??{name:'Still deciding'},setMotion(value){board.classList.toggle('instant',!value);},dispose(){cleanups.forEach(clean=>clean());}};
 }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from './vendor/BufferGeometryUtils.js';
-import {createArmGeometry,attachArmDeformation,ARM_UPPER,ARM_FOREARM,ARM_MAX_BEND} from './arms.js?v=20261006-natural';
+import {createArmGeometry,attachArmDeformation,ARM_UPPER,ARM_FOREARM,ARM_MAX_BEND} from './arms.js?v=20261006-matrix';
 
 // Authored anatomy and clothing. Shared geometry, materials and textures for every guest.
 export const skinTones=[0xf0d1b9,0xe8c3a9,0xe3b89b,0xd8a787,0xc89675,0xa57556,0x78523d];

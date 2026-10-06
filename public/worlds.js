@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
 
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
-import { createPlaceBuilder } from './places.js?v=20261006-natural';
-import { createMaterials } from './materials.js?v=20261006-natural';
-import { CrowdSolver } from './crowd.js?v=20261006-natural';
-import { createCrowdModels } from './people.js?v=20261006-natural';
-import { tiers, audioProfile } from './packages.js?v=20261006-natural';
-import { SceneBlend, SCENES } from './blend.js?v=20261006-natural';
+import { createPlaceBuilder } from './places.js?v=20261006-matrix';
+import { createMaterials } from './materials.js?v=20261006-matrix';
+import { CrowdSolver } from './crowd.js?v=20261006-matrix';
+import { createCrowdModels } from './people.js?v=20261006-matrix';
+import { tiers, audioProfile } from './packages.js?v=20261006-matrix';
+import { SceneBlend, SCENES } from './blend.js?v=20261006-matrix';
 
 export class SceneTransition extends SceneBlend {
   constructor(worlds,mode='ceremony'){super(mode);this.worlds=worlds;Object.values(worlds).forEach(w=>{w.group.position.set(0,0,0);w.group.scale.setScalar(1);});this.syncVisibility();}

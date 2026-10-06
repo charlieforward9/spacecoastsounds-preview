@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-natural';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-matrix';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261006-natural';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261006-natural';
-import { TouchOrbitIntent } from './touch-orbit.js?v=20261006-natural';
-import {loadSceneAssets} from './scene-assets.js?v=20261006-natural';
+import { SCENES, smoothstep } from './blend.js?v=20261006-matrix';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261006-matrix';
+import { TouchOrbitIntent } from './touch-orbit.js?v=20261006-matrix';
+import {loadSceneAssets} from './scene-assets.js?v=20261006-matrix';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;

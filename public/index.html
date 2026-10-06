@@ -9,13 +9,14 @@
   <title>Space Coast Sounds — Wedding DJ</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./motion.css?v=20261006-natural">
-  <link rel="stylesheet" href="./experience.css?v=20261006-natural">
-  <link rel="stylesheet" href="./mobile.css?v=20261006-natural">
-  <link rel="stylesheet" href="./minimal.css?v=20261006-natural">
+  <link rel="stylesheet" href="./motion.css?v=20261006-matrix">
+  <link rel="stylesheet" href="./experience.css?v=20261006-matrix">
+  <link rel="stylesheet" href="./mobile.css?v=20261006-matrix">
+  <link rel="stylesheet" href="./minimal.css?v=20261006-matrix">
+  <link rel="stylesheet" href="./matrix.css?v=20261006-matrix">
   <script defer src="./vendor/gsap/gsap.min.js"></script>
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
-  <script type="module" src="./app.js?v=20261006-natural"></script>
+  <script type="module" src="./app.js?v=20261006-matrix"></script>
 </head>
 <body>
   <div class="room-cursor" aria-hidden="true"><i></i></div>
@@ -49,13 +50,13 @@
       <h2 id="packages-title" class="sr-only">Wedding packages</h2>
       <div class="comparison-board" id="comparison-board">
         <div class="package-strip" id="package-strip">
+          <span class="matrix-corner" aria-hidden="true">Packages</span>
           <article class="package-tile"><button type="button" class="package-choice" data-tier="0" aria-pressed="false"><span class="package-name">Reception</span><strong class="package-price">$800</strong><span class="package-hours">Up to 4 h</span></button></article>
           <article class="package-tile is-selected"><button type="button" class="package-choice" data-tier="1" aria-pressed="true"><span class="package-name">Ceremony + Reception</span><strong class="package-price">$1,000</strong><span class="package-hours">Up to 6 h</span></button></article>
-          <article class="package-tile"><button type="button" class="package-choice" data-tier="2" aria-pressed="false"><span class="package-name">All-Day Audio</span><strong class="package-price">$1,400</strong><span class="package-hours">Up to 8 h</span></button></article>
+          <article class="package-tile"><button type="button" class="package-choice" data-tier="2" aria-pressed="false" aria-description="Includes the Ceremony and Reception package, plus longer coverage, multiple sound setups, additional microphones and event coordination support."><span class="package-name">All-Day Audio</span><strong class="package-price">$1,400</strong><span class="package-hours">Up to 8 h</span></button></article>
         </div>
         <div class="matrix-intro"><span>Setup + teardown included</span></div>
-        <div class="feature-matrix" id="comparison-body" role="group" aria-label="Package inclusions. Select a price, then tap an icon for details."></div>
-        <p class="comparison-key sr-only">Lock: excluded. — Not listed.</p>
+        <div class="feature-matrix" id="comparison-body" role="group" aria-label="Package inclusions. Select a price, then a feature to read its details below."></div>
       </div>
     </section>
     <section class="contact section" id="contact" aria-labelledby="contact-title">
