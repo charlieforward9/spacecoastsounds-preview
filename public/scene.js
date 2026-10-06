@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-arms';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261006-natural';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261006-arms';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261006-arms';
-import { TouchOrbitIntent } from './touch-orbit.js?v=20261006-arms';
+import { SCENES, smoothstep } from './blend.js?v=20261006-natural';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261006-natural';
+import { TouchOrbitIntent } from './touch-orbit.js?v=20261006-natural';
+import {loadSceneAssets} from './scene-assets.js?v=20261006-natural';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -22,7 +23,7 @@ export function cameraPose(profile,aspect,pointer,drag,time,drop=0,intro=1) {
   return {x:Math.sin(azimuth)*Math.cos(elevation)*radius,y:Math.sin(elevation)*radius+profile.lookY,z:Math.cos(azimuth)*Math.cos(elevation)*radius,lookX:pointer.x*.55,lookY:profile.lookY+reveal*.70-pointer.y*.15,lookZ:(profile.lookZ??-.8)-reveal*.85+pointer.y*.3,fov};
 }
 
-export async function createRoom(container,{reducedMotion=false,initialMode='ceremony',initialTier=1,intro=true}={}) {
+export async function createRoom(container,{reducedMotion=false,initialMode='ceremony',initialTier=1,intro=true,loadAssets=loadSceneAssets}={}) {
   const coarse=matchMedia('(pointer:coarse)').matches;
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
   // Limit only the WebGL buffer; text and controls retain full CSS resolution.
@@ -31,13 +32,15 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   container.append(renderer.domElement);
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(46,1,.1,300);scene.fog=new THREE.FogExp2(0x111827,.021);
   const root=new THREE.Group();scene.add(root);
-  const worlds=await createWorlds({yieldToMain:true,coarse});[...new Set(Object.values(worlds).map(world=>world.group))].forEach(group=>{root.add(group);group.visible=false;});root.add(worlds.rig.group);worlds.rig.setTier(initialTier);
+  const assets=await loadAssets({coarse});
+  const worlds=await createWorlds({yieldToMain:true,coarse,materialMaps:assets?.materialMaps,environments:assets?.environments});[...new Set(Object.values(worlds).map(world=>world.group))].forEach(group=>{root.add(group);group.visible=false;});root.add(worlds.rig.group);worlds.rig.setTier(initialTier);
   let mode=resolvePhase(initialTier,worlds[initialMode]?initialMode:'ceremony');
   const transition=new SceneTransition(worlds,mode);
   function environment(){
     const generator=new THREE.PMREMGenerator(renderer),captures={};
     try{
       for(const name of SCENES){
+        if(assets?.environments?.[name]){captures[name]=generator.fromEquirectangular(assets.environments[name]);continue;}
         const skyScene=new THREE.Scene(),dome=worlds.rig.environmentDome(name);
         dome.visible=true;skyScene.add(dome);
         try{captures[name]=generator.fromScene(skyScene,.03,.1,200,{size:128});}finally{dome.material.dispose();}
@@ -66,7 +69,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   let allowReflection=true,floorReflector,reflectionReady=false;
   if(!coarse){
     const reflector=floorReflector=new Reflector(new THREE.PlaneGeometry(17,13),{textureWidth:384,textureHeight:256,multisample:0,color:0x808080,clipBias:.005});
-    reflector.rotation.x=-Math.PI/2;reflector.position.set(0,.028,-.5);reflector.material.transparent=true;reflector.material.depthWrite=false;
+    reflector.rotation.x=-Math.PI/2;reflector.position.set(0,.002,-.5);reflector.material.transparent=true;reflector.material.depthWrite=false;
     reflector.material.fragmentShader=reflector.material.fragmentShader.replace('vec4 base = texture2DProj( tDiffuse, vUv );',`vec4 base = texture2DProj(tDiffuse,vUv)*.4;
       base+=texture2DProj(tDiffuse,vUv+vec4(.004*vUv.w,0.,0.,0.))*.15;
       base+=texture2DProj(tDiffuse,vUv-vec4(.004*vUv.w,0.,0.,0.))*.15;
@@ -167,7 +170,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   function applyLighting(weights){
     const mixColor=(color,property)=>{color.setRGB(0,0,0);SCENES.forEach((name,i)=>{const c=lightColors[name][property],w=weights[i];color.r+=c.r*w;color.g+=c.g*w;color.b+=c.b*w;});};
     mixColor(key.color,'key');mixColor(rim.color,'rim');mixColor(fill.color,'fill');mixColor(ambient.color,'sky');mixColor(ambient.groundColor,'ground');mixColor(scene.fog.color,'background');
-    key.intensity=SCENES.reduce((sum,name,i)=>sum+targets[name].intensity*weights[i],0);ambient.intensity=SCENES.reduce((sum,name,i)=>sum+targets[name].ambient*weights[i],0);rim.intensity=1.1-weights[2]*.45;fill.intensity=8+audioBeat*weights[2]*8;scene.fog.density=SCENES.reduce((sum,name,i)=>sum+targets[name].fog*weights[i],0);scene.environmentIntensity=SCENES.reduce((sum,name,i)=>sum+targets[name].environment*weights[i],0);scene.background=scene.fog.color;
+    key.intensity=SCENES.reduce((sum,name,i)=>sum+targets[name].intensity*weights[i],0);ambient.intensity=SCENES.reduce((sum,name,i)=>sum+targets[name].ambient*weights[i]*(assets?.environments?.[name]?.isDataTexture ? .35 : 1),0);rim.intensity=1.1-weights[2]*.45;fill.intensity=8+audioBeat*weights[2]*8;scene.fog.density=SCENES.reduce((sum,name,i)=>sum+targets[name].fog*weights[i],0);scene.environmentIntensity=SCENES.reduce((sum,name,i)=>sum+targets[name].environment*weights[i],0);scene.background=scene.fog.color;
   }
   function applyShadow(name){if(!coarse){key.shadow.map=shadowCache[name]??null;renderer.shadowMap.needsUpdate=!shadowCache[name]||frameCount%6===0||!moving;}}
   const envTarget=new THREE.WebGLRenderTarget(environmentTargets.ceremony.width,environmentTargets.ceremony.height,{type:THREE.HalfFloatType,depthBuffer:false});envTarget.texture.mapping=THREE.CubeUVReflectionMapping;envTarget.texture.colorSpace=THREE.LinearSRGBColorSpace;
@@ -196,7 +199,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
     setBeat(value){if(moving)audioBeat=value;},
     setScroll(){},
     drop(){if(moving){dropStarted=elapsed;dragTarget.set(0,0);needsRender=true;schedule();}},
-    getStats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,scene:mode,tier:worlds.rig.getTier(),crowd:worlds[mode].guests,crowdBatches:worlds.rig.crowdModels.stats.batches,crowdTriangles:worlds.rig.crowdModels.stats.triangles,moving,renderPixels:renderer.domElement.width*renderer.domElement.height,quality,shadowMap:renderer.shadowMap.enabled,webgl:true};},
-    dispose(){disposed=true;stop();resizeObserver.disconnect();visibilityObserver.disconnect();release();container.removeEventListener('pointermove',point);container.removeEventListener('pointerleave',leave);container.removeEventListener('pointerdown',down);container.removeEventListener('pointerup',release);container.removeEventListener('pointercancel',release);document.removeEventListener('visibilitychange',visibilityChange);window.removeEventListener('scroll',invalidateBounds);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('webglcontextrestored',restored);blendTargets.forEach(target=>target.dispose());Object.values(shadowCache).forEach(map=>map?.dispose());floorReflector?.dispose();envTarget.dispose();envMaterial.dispose();envScene.children[0].geometry.dispose();dissolveMaterial.dispose();dissolveScene.children[0].geometry.dispose();Object.values(environmentTargets).forEach(target=>target.dispose());worlds.rig.crowdModels.dispose();renderer.dispose();}
+    getStats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,scene:mode,tier:worlds.rig.getTier(),crowd:worlds[mode].guests,crowdBatches:worlds.rig.crowdModels.stats.batches,crowdTriangles:worlds.rig.crowdModels.stats.triangles,assets:assets?.stats,moving,renderPixels:renderer.domElement.width*renderer.domElement.height,quality,shadowMap:renderer.shadowMap.enabled,webgl:true};},
+    dispose(){disposed=true;stop();resizeObserver.disconnect();visibilityObserver.disconnect();release();container.removeEventListener('pointermove',point);container.removeEventListener('pointerleave',leave);container.removeEventListener('pointerdown',down);container.removeEventListener('pointerup',release);container.removeEventListener('pointercancel',release);document.removeEventListener('visibilitychange',visibilityChange);window.removeEventListener('scroll',invalidateBounds);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('webglcontextrestored',restored);blendTargets.forEach(target=>target.dispose());Object.values(shadowCache).forEach(map=>map?.dispose());floorReflector?.dispose();envTarget.dispose();envMaterial.dispose();envScene.children[0].geometry.dispose();dissolveMaterial.dispose();dissolveScene.children[0].geometry.dispose();Object.values(environmentTargets).forEach(target=>target.dispose());worlds.rig.dispose();worlds.rig.crowdModels.dispose();assets?.dispose?.();renderer.dispose();}
   };
 }

@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
 
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
-import { createPlaceBuilder } from './places.js?v=20261006-arms';
-import { createMaterials } from './materials.js?v=20261006-arms';
-import { CrowdSolver } from './crowd.js?v=20261006-arms';
-import { createCrowdModels } from './people.js?v=20261006-arms';
-import { tiers, audioProfile } from './packages.js?v=20261006-arms';
-import { SceneBlend, SCENES } from './blend.js?v=20261006-arms';
+import { createPlaceBuilder } from './places.js?v=20261006-natural';
+import { createMaterials } from './materials.js?v=20261006-natural';
+import { CrowdSolver } from './crowd.js?v=20261006-natural';
+import { createCrowdModels } from './people.js?v=20261006-natural';
+import { tiers, audioProfile } from './packages.js?v=20261006-natural';
+import { SceneBlend, SCENES } from './blend.js?v=20261006-natural';
 
 export class SceneTransition extends SceneBlend {
   constructor(worlds,mode='ceremony'){super(mode);this.worlds=worlds;Object.values(worlds).forEach(w=>{w.group.position.set(0,0,0);w.group.scale.setScalar(1);});this.syncVisibility();}
@@ -18,13 +18,13 @@ export class SceneTransition extends SceneBlend {
 }
 
 // Two authored places, one persistent crowd and equipment rig, three lighting/layout states.
-export async function createWorlds({yieldToMain=false,coarse=false}={}) {
+export async function createWorlds({yieldToMain=false,coarse=false,materialMaps={},environments={}}={}) {
   const yieldWork=async()=>{if(yieldToMain)await new Promise(resolve=>setTimeout(resolve,0));};
   let seed=428;
   const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
   const material=(color,options={})=>new THREE.MeshStandardMaterial({color,roughness:.55,...options});
-  const palette=createMaterials();
-  const places=createPlaceBuilder(palette);
+  const palette=createMaterials({maps:materialMaps});
+  const places=createPlaceBuilder(palette,environments);
   const geometries={box:new RoundedBoxGeometry(1,1,1,1,.025),cylinder:new THREE.CylinderGeometry(1,1,1,20),sphere:new THREE.SphereGeometry(1,16,12)};
   function mesh(parent,geometry,mat,position,scale=[1,1,1]){
     const object=new THREE.Mesh(geometry,mat);object.position.set(...position);object.scale.set(...scale);object.castShadow=!mat.isMeshBasicMaterial&&!mat.isShaderMaterial&&!mat.transparent;object.receiveShadow=true;parent.add(object);return object;
@@ -101,6 +101,9 @@ export async function createWorlds({yieldToMain=false,coarse=false}={}) {
   const microphones=[];
   for(let i=0;i<2;i++){const group=new THREE.Group();group.name=i?'Additional wireless microphone':'Wireless microphone';shared.add(group);cylinder(group,palette.black,0,.86,0,.025,1.72);cylinder(group,palette.metal,0,.015,0,.24,.035);const mic=new THREE.Group();mic.position.set(0,1.74,0);mic.rotation.z=-.45;group.add(mic);cylinder(mic,palette.black,0,0,0,.028,.21);sphere(mic,palette.metal,0,.15,0,.052);box(mic,palette.cyan,0,.012,.03,.012,.023,.004);microphones.push({group,scale:0,layouts:i?[{x:.95,z:-2.55},{x:2.9,z:-4.2},{x:1.85,z:-3.7}]:[{x:0,z:-3.38},{x:-2.9,z:-4.2},{x:-1.85,z:-3.7}]});}
   const receiver=box(booth,palette.black,1.15,1.84,-.32,.52,.11,.32);for(const x of [.95,1.36])cylinder(booth,palette.black,x,2.02,-.45,.006,.32);
+  const propShadows=new THREE.InstancedMesh(crowdModels.contactShadows.geometry,crowdModels.contactShadows.material,seats.length+tables.length+speakerObjects.length+2);
+  propShadows.name='Furniture and tree contact shadows';propShadows.rotation.x=-Math.PI/2;propShadows.position.y=.005;propShadows.frustumCulled=false;propShadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);shared.add(propShadows);
+  function stampShadow(index,x,z,width,depth,angle=0){dummy.position.set(x,-z,0);dummy.rotation.set(0,0,angle);dummy.scale.set(Math.max(.0001,width),Math.max(.0001,depth),1);dummy.updateMatrix();propShadows.setMatrixAt(index,dummy.matrix);}
   const disco=mesh(pavilion,new THREE.IcosahedronGeometry(.40,3),material(0xa8c2dd,{metalness:1,roughness:.09}),[0,3.62,-.4]);disco.userData.dynamic=true;cylinder(pavilion,palette.metal,0,4.15,-.4,.012,.68);
   const partyAccents=new THREE.Group();partyAccents.userData.dynamic=true;pavilion.add(partyAccents);const lights=[],spotlights=[];
   for(let i=0;i<4;i++){
@@ -148,6 +151,12 @@ export async function createWorlds({yieldToMain=false,coarse=false}={}) {
    obstacles.forEach(o=>{if(o.object){o.offset.x=o.x-o.targetX;o.offset.z=o.z-o.targetZ;o.object.position.x=o.x;o.object.position.z=o.z;}});
    seats.forEach((seat,i)=>{seat.object.updateMatrix();chairInstances.forEach(object=>object.setMatrixAt(i,seat.object.matrix));});chairInstances.forEach(object=>object.instanceMatrix.needsUpdate=true);
    actors.forEach((g,i)=>{g.x=solver.x[i];g.z=solver.z[i];});crowdModels.update(time,beat,weights,dt);
+   let shadowIndex=0;
+   seats.forEach(seat=>stampShadow(shadowIndex++,seat.object.position.x,seat.object.position.z,.68,.74,seat.object.rotation.y));
+   tables.forEach(table=>stampShadow(shadowIndex++,table.object.position.x,table.object.position.z,1.50,1.50));
+   speakerObjects.forEach(s=>stampShadow(shadowIndex++,s.holder.position.x,s.holder.position.z,1.3*s.holder.scale.x,1.1*s.holder.scale.z));
+   stampShadow(shadowIndex++,booth.position.x,booth.position.z,3.50*booth.scale.x,1.35*booth.scale.z);
+   stampShadow(shadowIndex,ceremonyPlace.tree.collision.x,ceremonyPlace.tree.collision.z,4.2*weights[0],3.8*weights[0]);propShadows.instanceMatrix.needsUpdate=true;
    receiver.visible=coverage>.002;
    disco.rotation.y=time*.26;lights.forEach(({pivot,mat},i)=>{pivot.rotation.z=Math.sin(time*.52+i)*.38+pointer.x*.16;pivot.rotation.x=.34+Math.cos(time*.35+i*.7)*.18+pointer.y*.10;mat.opacity=.022*nightMix;});spotlights.forEach((spot,i)=>{spot.target.position.set((i?2:-2)+pointer.x*2+Math.sin(time*.4+i),.2,-.3+pointer.y);spot.intensity=nightMix*(80+beat*35);});
    for(let i=0;i<16;i++){dummy.position.set(-1.15+i*.15,.85,.563);dummy.rotation.set(0,0,0);dummy.scale.set(.035,.3*(.25+night*(Math.abs(Math.sin(time*3.4+i*.6))*1.5+beat*.4)),.016);dummy.updateMatrix();equalizer.setMatrixAt(i,dummy.matrix);}equalizer.instanceMatrix.needsUpdate=true;
@@ -161,10 +170,10 @@ export async function createWorlds({yieldToMain=false,coarse=false}={}) {
    cocktail:{group:pavilion,guests:actors.length,profile:{...interiorProfile},pavilion:beach},
    party:{group:pavilion,guests:actors.length,profile:{...interiorProfile},pavilion:beach}
   };
-  const rig={group:shared,pavilion,actors,solver,crowdModels,obstacles,seats,chairInstances,tables,speakers:speakerObjects,microphones,update,setTier,getTier:()=>selectedTier,
+  const rig={group:shared,pavilion,actors,solver,crowdModels,propShadows,obstacles,seats,chairInstances,tables,speakers:speakerObjects,microphones,update,setTier,getTier:()=>selectedTier,dispose(){propShadows.dispose();propShadows.removeFromParent();},
    showEnvironment(name){ceremony.visible=name==='ceremony';pavilion.visible=name!=='ceremony';},
    syncVisibility(weights){ceremony.visible=weights[0]>1e-5;pavilion.visible=weights[1]+weights[2]>1e-5;},
-   environmentDome(name){const dome=(name==='ceremony'?ceremonyPlace.dome:beach.dome).clone();dome.material=dome.material.clone();if(name!=='ceremony'){const night=name==='party';dome.material.uniforms.horizon.value.copy(night?nightHorizon:dayHorizon);dome.material.uniforms.zenith.value.copy(night?nightZenith:dayZenith);dome.material.uniforms.night.value=night?1:0;}return dome;}
+   environmentDome(name){const dome=(name==='ceremony'?ceremonyPlace.dome:beach.dome).clone(),source=dome.material;dome.material=source.clone();for(const key of ['daySky','nightSky'])dome.material.uniforms[key].value=source.uniforms[key].value;if(name!=='ceremony'){const night=name==='party';dome.material.uniforms.horizon.value.copy(night?nightHorizon:dayHorizon);dome.material.uniforms.zenith.value.copy(night?nightZenith:dayZenith);dome.material.uniforms.night.value=night?1:0;}return dome;}
   };
   Object.defineProperty(worlds,'rig',{value:rig});
   // Batch only static architecture. Persistent guests and furniture retain their identities.

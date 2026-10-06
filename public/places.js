@@ -1,9 +1,21 @@
 import * as THREE from 'three';
-// Authored venue geometry. Reference photos inform proportions; no images are rendered.
+import {mergeGeometries} from './vendor/BufferGeometryUtils.js';
+// Authored venue geometry with photographed surfaces and captured sky lighting.
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 const leafGeometry=new THREE.BufferGeometry();
 leafGeometry.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,-.45,.02,.3,-.30,.035,.78,0,.07,1.1,.30,.035,.78,.45,.02,.3],3));
 leafGeometry.setIndex([0,1,2,0,2,3,0,3,4,0,4,5]);leafGeometry.computeVertexNormals();
+leafGeometry.setAttribute('uv',new THREE.Float32BufferAttribute([.5,0,0,.27,.17,.71,.5,1,.83,.71,1,.27],2));
+function leafCluster(){
+ const random=seeded(1773),leaves=[],matrix=new THREE.Matrix4(),dummy=new THREE.Object3D();
+ for(let i=0;i<72;i++){
+  const angle=random()*Math.PI*2,radius=Math.cbrt(random());dummy.position.set(Math.cos(angle)*radius,(random()-.5)*1.45,Math.sin(angle)*radius);
+  dummy.rotation.set((random()-.5)*1.4,random()*Math.PI*2,(random()-.5)*1.4);dummy.scale.setScalar(.23+random()*.20);dummy.updateMatrix();matrix.copy(dummy.matrix);
+  leaves.push(leafGeometry.clone().applyMatrix4(matrix));
+ }
+ const geometry=mergeGeometries(leaves,false);leaves.forEach(g=>g.dispose());return geometry;
+}
+const leafClusterGeometry=leafCluster();
 const roofGeometry=new THREE.BufferGeometry();
 const roofPositions=[],roofUvs=[];
 const roofFaces=[[[ -8.5,4.55,6],[8.5,4.55,6],[4,7.25,-.5],[-4,7.25,-.5]],[[8.5,4.55,-7],[-8.5,4.55,-7],[-4,7.25,-.5],[4,7.25,-.5]],[[-8.5,4.55,-7],[-8.5,4.55,6],[-4,7.25,-.5]],[[8.5,4.55,6],[8.5,4.55,-7],[4,7.25,-.5]]];
@@ -20,7 +32,7 @@ export function lighthouseTerrainHeight(x,z){
  if(Math.abs(x+8.3)<.92&&z>-7.0&&z<2.3)y=Math.min(y,Math.max(-.03,(2.05-z)/8.84*3.6-.10));
  return y;
 }
-export function createPlaceBuilder(palette){
+export function createPlaceBuilder(palette,environments={}){
  const boxGeometry=new THREE.BoxGeometry(1,1,1),sphereGeometry=new THREE.SphereGeometry(1,14,9),cylinderGeometry=new THREE.CylinderGeometry(1,1,1,12);
  function mesh(parent,geometry,material,x=0,y=0,z=0,scale=[1,1,1]){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.scale.set(...scale);m.castShadow=!material.transparent&&!material.isShaderMaterial&&!material.isMeshBasicMaterial;m.receiveShadow=true;parent.add(m);return m;}
  const box=(p,m,x,y,z,w,h,d)=>mesh(p,boxGeometry,m,x,y,z,[w,h,d]);
@@ -31,8 +43,10 @@ export function createPlaceBuilder(palette){
  function sky(parent,kind){
   const colors={ceremony:[0xcde5e8,0x78afcb],cocktail:[0xffce92,0x867eb0],party:[0x39404e,0x060e20]}[kind];
   const direction=kind==='ceremony'?V(-.45,.42,-1).normalize():V(-.62,.035,-1).normalize();
-  const material=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{horizon:{value:new THREE.Color(colors[0])},zenith:{value:new THREE.Color(colors[1])},sunDirection:{value:direction},night:{value:kind==='party'?1:0}},vertexShader:'varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`varying vec3 vDirection;uniform vec3 horizon;uniform vec3 zenith;uniform vec3 sunDirection;uniform float night;
-   void main(){vec3 d=normalize(vDirection);float height=smoothstep(-.08,.75,d.y);vec3 c=mix(horizon,zenith,height);float s=max(0.,dot(d,sunDirection));c+=vec3(1.,.64,.32)*pow(s,170.)*.22*(1.-night);c+=vec3(1.,.85,.57)*pow(s,3600.)*3.*(1.-night);gl_FragColor=vec4(c,1.);
+  const daySky=environments[kind==='ceremony'?'ceremony':'cocktail'],nightSky=environments[kind==='ceremony'?'ceremony':'party'];
+  const material=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,uniforms:{horizon:{value:new THREE.Color(colors[0])},zenith:{value:new THREE.Color(colors[1])},sunDirection:{value:direction},night:{value:kind==='party'?1:0},daySky:{value:daySky??null},nightSky:{value:nightSky??null},capturedSky:{value:daySky&&nightSky?1:0}},vertexShader:'varying vec3 vDirection;void main(){vDirection=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:`varying vec3 vDirection;uniform vec3 horizon;uniform vec3 zenith;uniform vec3 sunDirection;uniform float night;uniform sampler2D daySky;uniform sampler2D nightSky;uniform float capturedSky;
+   void main(){vec3 d=normalize(vDirection);float height=smoothstep(-.08,.75,d.y);vec3 c=mix(horizon,zenith,height);float s=max(0.,dot(d,sunDirection));c+=vec3(1.,.64,.32)*pow(s,170.)*.22*(1.-night);c+=vec3(1.,.85,.57)*pow(s,3600.)*3.*(1.-night);
+   if(capturedSky>.5){vec2 uv=vec2(atan(d.z,d.x)/6.2831853+.5,asin(clamp(d.y,.12,1.))/3.14159265+.5);vec3 sky=mix(texture2D(daySky,uv).rgb,texture2D(nightSky,uv).rgb,night);c=mix(c,sky,smoothstep(.12,.32,d.y));}gl_FragColor=vec4(c,1.);
    #include <tonemapping_fragment>
    #include <colorspace_fragment>
   }`});
@@ -76,11 +90,11 @@ export function createPlaceBuilder(palette){
   }
   for(let i=0;i<30;i++){const a=random()*Math.PI*2,r=2+random()*4.6,x=Math.cos(a)*r,z=Math.sin(a)*r*.66;branch(group,[[x,5.6,z],[x+.03,3.7,z+.03],[x+.07,1.8+random()*1.8,z+.02]],.014);}
   const canopy=new THREE.Group();canopy.userData.dynamic=true;group.add(canopy);
-  const crowns=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),palette.leaf,95),leaves=new THREE.InstancedMesh(leafGeometry,palette.foliage,2400);canopy.add(crowns,leaves);crowns.castShadow=true;crowns.receiveShadow=true;leaves.receiveShadow=true;
+  const crowns=new THREE.InstancedMesh(leafClusterGeometry,palette.foliage,95),leaves=new THREE.InstancedMesh(leafGeometry,palette.foliage,2400);canopy.add(crowns,leaves);crowns.name='Layered banyan leaf clusters';crowns.castShadow=true;crowns.receiveShadow=true;leaves.receiveShadow=true;
   const dummy=new THREE.Object3D();
   function foliagePoint(){const a=random()*Math.PI*2,r=Math.sqrt(random())*7.0;return [Math.cos(a)*r,5.7+Math.sin(r/7*Math.PI)*.90+(random()-.5)*.75,Math.sin(a)*r*.68];}
-  for(let i=0;i<95;i++){const [x,y,z]=foliagePoint();dummy.position.set(x,y,z);dummy.rotation.set(random(),random(),random());dummy.scale.set(.6+random()*.8,.35+random()*.45,.6+random()*.8);dummy.updateMatrix();crowns.setMatrixAt(i,dummy.matrix);crowns.setColorAt(i,new THREE.Color().setHSL(.25+random()*.07,.26+random()*.10,.13+random()*.11));}
-  for(let i=0;i<2400;i++){const [x,y,z]=foliagePoint();dummy.position.set(x,y+.12,z);dummy.rotation.set(random()*Math.PI,random()*Math.PI*2,random()*Math.PI);dummy.scale.setScalar(.17+random()*.20);dummy.updateMatrix();leaves.setMatrixAt(i,dummy.matrix);leaves.setColorAt(i,new THREE.Color().setHSL(.23+random()*.07,.3,.22+random()*.15));}
+  for(let i=0;i<95;i++){const [x,y,z]=foliagePoint();dummy.position.set(x,y,z);dummy.rotation.set(random(),random(),random());dummy.scale.set(.6+random()*.8,.35+random()*.45,.6+random()*.8);dummy.updateMatrix();crowns.setMatrixAt(i,dummy.matrix);crowns.setColorAt(i,new THREE.Color().setHSL(.25+random()*.07,.26+random()*.10,.55+random()*.15));}
+  for(let i=0;i<2400;i++){const [x,y,z]=foliagePoint();dummy.position.set(x,y+.12,z);dummy.rotation.set(random()*Math.PI,random()*Math.PI*2,random()*Math.PI);dummy.scale.setScalar(.17+random()*.20);dummy.updateMatrix();leaves.setMatrixAt(i,dummy.matrix);leaves.setColorAt(i,new THREE.Color().setHSL(.23+random()*.07,.3,.55+random()*.15));}
   return {group,collision:{kind:'circle',x:group.position.x,z:group.position.z,radius:.72*Math.max(group.scale.x,group.scale.z)},update(time){canopy.rotation.z=Math.sin(time*.36)*.008;canopy.rotation.y=Math.sin(time*.22)*.008;}};
  }
  function palm(parent,x,z,height=7){

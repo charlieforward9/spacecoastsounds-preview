@@ -12,6 +12,7 @@ export function surfaceTexture(kind='stone',size=128){
     else if(kind==='thatch')value=150+Math.sin(x*1.8+Math.sin(y*.11)*.8)*35+(n-.5)*55;
     else if(kind==='brick'){value=200+(n-.5)*26;if(y%16<1||(x+(intRow(y)%2)*32)%64<2)value=130;}
     else if(kind==='metal')value=220+Math.sin(y*2.1)*12+(n-.5)*14;
+    else if(kind==='leaf'){const u=x/size-.5,v=y/size;value=205+(n-.5)*12-40*Math.exp(-u*u*1500)-22*Math.exp(-(Math.sin(v*42+Math.abs(u)*48)**2)*65);}
     else value=220+Math.sin(x*.055+y*.018+Math.sin(y*.07)*1.7)*10+(n-.5)*20;
     const i=(y*size+x)*4;data[i]=data[i+1]=data[i+2]=Math.max(0,Math.min(255,value));data[i+3]=255;
   }
@@ -22,15 +23,16 @@ export function grilleTexture(size=128){
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){const dx=x%8-3.5+(Math.floor(y/8)%2?4:0),dy=y%8-3.5;const d=Math.min(Math.hypot(dx,dy),Math.hypot(dx-8,dy));const alpha=d<2.3?0:255;const i=(y*size+x)*4;pixels[i]=pixels[i+1]=pixels[i+2]=alpha;pixels[i+3]=255;}
   const texture=new THREE.DataTexture(pixels,size,size);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(2,4);texture.needsUpdate=true;return texture;
 }
-export function createMaterials(){
+export function createMaterials({maps={}}={}){
   const fabric=surfaceTexture('fabric'),stone=surfaceTexture('stone'),wood=surfaceTexture('wood'),metal=surfaceTexture('metal');
   wood.repeat.set(5,7);stone.repeat.set(4,5);fabric.repeat.set(3,3);metal.repeat.set(2,3);
   const bark=surfaceTexture('bark'),thatch=surfaceTexture('thatch'),brick=surfaceTexture('brick');bark.repeat.set(2,3);thatch.repeat.set(18,9);brick.repeat.set(3,8);
+  const leaf=surfaceTexture('leaf',128);
   const mat=(color,options={})=>new THREE.MeshStandardMaterial({color,roughness:.65,...options});
-  return {
+  const palette={
     grass:mat(0x86966d,{map:stone,roughness:.94}),gravel:mat(0xc5bba7,{map:stone,bumpMap:stone,bumpScale:.020,roughness:.94}),
     bark:mat(0x8a7660,{map:bark,bumpMap:bark,bumpScale:.027,roughness:.92}),thatch:mat(0x9f8357,{map:thatch,bumpMap:thatch,bumpScale:.035,roughness:.98,side:THREE.DoubleSide}),brick:mat(0x943d30,{map:brick,bumpMap:brick,bumpScale:.018,roughness:.86}),
-    foliage:mat(0x718754,{side:THREE.DoubleSide,roughness:.86}),
+    foliage:mat(0x899f63,{map:leaf,bumpMap:leaf,bumpScale:.002,side:THREE.DoubleSide,roughness:.75}),
     ivory:mat(0xf8f8f2,{map:stone,bumpMap:stone,bumpScale:.004}),
     stone:mat(0xdce2da,{map:stone,bumpMap:stone,bumpScale:.008,roughness:.36}),
     wood:mat(0x634735,{map:wood,bumpMap:wood,bumpScale:.012,roughness:.40}),
@@ -45,4 +47,15 @@ export function createMaterials(){
     grille:mat(0x13151a,{alphaMap:grilleTexture(),alphaTest:.5,roughness:.60,side:THREE.DoubleSide}),
     sand:mat(0xc3beb0),peach:new THREE.MeshBasicMaterial({color:0xffd9a8,toneMapped:false}),lime:new THREE.MeshBasicMaterial({color:0xcafa63,toneMapped:false}),cyan:new THREE.MeshBasicMaterial({color:0x83d8ff,toneMapped:false}),rose:new THREE.MeshBasicMaterial({color:0xfb7aaa,toneMapped:false})
   };
+  for(const [family,names,repeat]of [['wood',['wood','darkWood'],[6,8]],['bark',['bark'],[2,3]],['brick',['brick'],[3,8]]]){
+    const captures=maps[family];if(!captures)continue;
+    Object.values(captures).forEach(texture=>texture.repeat.set(...repeat));
+    for(const name of names){
+      const target=palette[name];Object.assign(target,captures);if(captures.normalMap){target.bumpMap=null;target.normalScale.setScalar(family==='bark'?.65:.40);}
+      if(captures.map)target.color.setHex(name==='darkWood'?0x7c6a56:0xffffff);
+      if(captures.roughnessMap)target.roughness=name==='darkWood'?.70:1;
+      target.needsUpdate=true;
+    }
+  }
+  return palette;
 }
