@@ -208,3 +208,13 @@ footer { max-width:1050px; margin:auto; padding:22px 4.5% 30px; font-size:10px; 
 @keyframes venue-line { 0%,10% { transform:scaleX(0); } 35%,65% { transform:scaleX(1); } 100% { transform:scaleX(.6); } }
 @media (prefers-reduced-motion:reduce) { .venue-intro { display:none; } }
 .motion-paused .venue-intro { display:none; }
+
+/* Quantity reads as quantity, with + for unspecified additional equipment. */
+.feature-symbols { display:inline-flex; align-items:center; justify-content:center; gap:4px; }
+.feature-symbols.is-multiple svg { width:17px; height:20px; }
+.feature-symbols b { align-self:flex-start; font-size:10px; font-weight:500; line-height:1.2; margin-left:-1px; }
+@media(max-width:760px) { .feature-symbols { gap:3px; } .feature-symbols.is-multiple svg { width:15px; height:19px; } .feature-symbols b { font-size:8px; } #gear-caption { max-width:70%; text-align:right; } }
+
+.stage-label,.stage-note { transition:color 1.8s; }
+@media(prefers-reduced-motion:reduce) { .stage-label,.stage-note { transition:none; } }
+.motion-paused .stage-label,.motion-paused .stage-note { transition:none; }

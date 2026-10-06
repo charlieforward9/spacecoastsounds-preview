@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261005-jupiter';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261005-jupiter';
+import { SCENES, smoothstep } from './blend.js?v=20261005-immersive';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261005-immersive';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -9,15 +9,15 @@ export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
 }
 
 export function cameraPose(profile,aspect,pointer,drag,time,drop=0,intro=1) {
-  const framing=Math.max(.86,.95/Math.max(.70,aspect));
+  const interior=profile.interior??0,framing=THREE.MathUtils.lerp(Math.max(.86,.95/Math.max(.70,aspect)),1,interior);
   const reveal=1-smoothstep(intro);
-  const radius=(profile.radius-drop*2.4+reveal*3.4)*framing;
+  const radius=(profile.radius-drop*THREE.MathUtils.lerp(2.4,.55,interior)+reveal*3.4)*framing;
   const azimuth=THREE.MathUtils.clamp(profile.azimuth-reveal*.065+pointer.x*.22+drag.x+Math.sin(time*.19)*.025,-.62,.62);
   const elevation=THREE.MathUtils.clamp(profile.elevation+reveal*.025-pointer.y*.11+drag.y-drop*.025,.02,.32);
-  return {x:Math.sin(azimuth)*Math.cos(elevation)*radius,y:Math.sin(elevation)*radius+profile.lookY,z:Math.cos(azimuth)*Math.cos(elevation)*radius,lookX:pointer.x*.55,lookY:profile.lookY+reveal*.70-pointer.y*.15,lookZ:-.8-reveal*.85+pointer.y*.3};
+  return {x:Math.sin(azimuth)*Math.cos(elevation)*radius,y:Math.sin(elevation)*radius+profile.lookY,z:Math.cos(azimuth)*Math.cos(elevation)*radius,lookX:pointer.x*.55,lookY:profile.lookY+reveal*.70-pointer.y*.15,lookZ:(profile.lookZ??-.8)-reveal*.85+pointer.y*.3,fov:(profile.fov??46)+Math.max(0,1-aspect)*12*interior};
 }
 
-export async function createRoom(container,{reducedMotion=false,initialMode='ceremony',intro=true}={}) {
+export async function createRoom(container,{reducedMotion=false,initialMode='ceremony',initialTier=1,intro=true}={}) {
   const coarse=matchMedia('(pointer:coarse)').matches;
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
   // Limit only the WebGL buffer; text and controls retain full CSS resolution.
@@ -26,16 +26,16 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   container.append(renderer.domElement);
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(46,1,.1,300);scene.fog=new THREE.FogExp2(0x111827,.021);
   const root=new THREE.Group();scene.add(root);
-  const worlds=await createWorlds({yieldToMain:true});Object.values(worlds).forEach(world=>{root.add(world.group);world.group.visible=false;});
+  const worlds=await createWorlds({yieldToMain:true});[...new Set(Object.values(worlds).map(world=>world.group))].forEach(group=>{root.add(group);group.visible=false;});root.add(worlds.rig.group);worlds.rig.setTier(initialTier);
   let mode=worlds[initialMode]?initialMode:'ceremony';
   const transition=new SceneTransition(worlds,mode);
   function environment(){
     const generator=new THREE.PMREMGenerator(renderer),captures={};
     try{
       for(const name of SCENES){
-        const skyScene=new THREE.Scene(),dome=worlds[name].group.getObjectByName('Procedural sky').clone();
+        const skyScene=new THREE.Scene(),dome=worlds.rig.environmentDome(name);
         dome.visible=true;skyScene.add(dome);
-        captures[name]=generator.fromScene(skyScene,.03,.1,200,{size:128});
+        try{captures[name]=generator.fromScene(skyScene,.03,.1,200,{size:128});}finally{dome.material.dispose();}
       }
       return captures;
     }catch(error){Object.values(captures).forEach(target=>target.dispose());throw error;}
@@ -47,11 +47,11 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   key.shadow.mapSize.set(512,512);Object.assign(key.shadow.camera,{left:-26,right:26,top:26,bottom:-26,near:.5,far:100});key.shadow.bias=-.0002;key.shadow.normalBias=.025;scene.add(key);
   const rim=new THREE.DirectionalLight(0x68cfff,2.6);rim.position.set(7,7,-8);scene.add(rim);
   const fill=new THREE.PointLight(0xff6fb5,22,20,1.5);fill.position.set(0,4,-2);scene.add(fill);
-  const targets={ceremony:{key:0xfff5e6,rim:0xd0e7e8,fill:0xfff2dc,intensity:3.1,sky:0xe3f1f5,ground:0x879478,ambient:1.20,background:0xcde5e8,fog:.003,environment:.90},cocktail:{key:0xffbd78,rim:0xb2a3cd,fill:0xffcb92,intensity:2.0,sky:0xe7c3a4,ground:0x665a43,ambient:.80,background:0xffce92,fog:.004,environment:.80},party:{key:0xa3b8d6,rim:0xacd4dd,fill:0xffbc8d,intensity:.50,sky:0x475774,ground:0x1c2329,ambient:.36,background:0x101b2b,fog:.006,environment:.65}};
-  const shadowCache={},blendTargets=SCENES.map(()=>new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true}));
+  const targets={ceremony:{key:0xfff5e6,rim:0xd0e7e8,fill:0xfff2dc,intensity:3.1,sky:0xe3f1f5,ground:0x879478,ambient:1.20,background:0xcde5e8,fog:.003,environment:.90},cocktail:{key:0xffbd78,rim:0xb2a3cd,fill:0xffcb92,intensity:2.0,sky:0xe7c3a4,ground:0x665a43,ambient:.80,background:0xffce92,fog:.028,environment:.80},party:{key:0xa3b8d6,rim:0xacd4dd,fill:0xffbc8d,intensity:.50,sky:0x475774,ground:0x1c2329,ambient:.36,background:0x101b2b,fog:.040,environment:.65}};
+  const shadowCache={},blendTargets=['ceremony','beach'].map(()=>new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true}));
   const dissolveScene=new THREE.Scene(),dissolveCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-  const dissolveMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{a:{value:blendTargets[0].texture},b:{value:blendTargets[1].texture},c:{value:blendTargets[2].texture},weights:{value:new THREE.Vector3(0,0,1)},progress:{value:1},origin:{value:new THREE.Vector2(.5,.5)}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:`varying vec2 vUv;uniform sampler2D a;uniform sampler2D b;uniform sampler2D c;uniform vec3 weights;uniform float progress;uniform vec2 origin;
-    void main(){vec3 radiance=texture2D(a,vUv).rgb*weights.x+texture2D(b,vUv).rgb*weights.y+texture2D(c,vUv).rgb*weights.z;
+  const dissolveMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{a:{value:blendTargets[0].texture},b:{value:blendTargets[1].texture},weights:{value:new THREE.Vector3(0,0,1)},progress:{value:1},origin:{value:new THREE.Vector2(.5,.5)}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:`varying vec2 vUv;uniform sampler2D a;uniform sampler2D b;uniform vec3 weights;uniform float progress;uniform vec2 origin;
+    void main(){vec3 radiance=texture2D(a,vUv).rgb*weights.x+texture2D(b,vUv).rgb*weights.y;
     float flare=exp(-abs(length(vUv-origin)-progress*1.6)*22.)*sin(progress*3.14159265)*.035;
     gl_FragColor=vec4(radiance+vec3(.58,.70,.95)*flare,1.);
     #include <tonemapping_fragment>
@@ -67,7 +67,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
       base+=texture2DProj(tDiffuse,vUv-vec4(.004*vUv.w,0.,0.,0.))*.15;
       base+=texture2DProj(tDiffuse,vUv+vec4(0.,.006*vUv.w,0.,0.))*.15;
       base+=texture2DProj(tDiffuse,vUv-vec4(0.,.006*vUv.w,0.,0.))*.15;`).replace('blendOverlay( base.rgb, color ), 1.0','blendOverlay( base.rgb, color ), .12');
-    const capture=reflector.onBeforeRender;reflector.onBeforeRender=function(...args){if(allowReflection){capture.apply(this,args);reflectionReady=true;}};worlds.party.group.add(reflector);
+    const capture=reflector.onBeforeRender;reflector.onBeforeRender=function(...args){if(allowReflection){capture.apply(this,args);reflectionReady=true;}};worlds.rig.pavilion.add(reflector);
   }
   // Project the mouse onto the floor, rather than moving a flat overlay.
   const glowCanvas=document.createElement('canvas');glowCanvas.width=128;glowCanvas.height=128;
@@ -87,7 +87,6 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   let dragging=false,pointerId,lastX=0,lastY=0;
   const pointer=new THREE.Vector2(),smoothed=new THREE.Vector2(),drag=new THREE.Vector2(),dragTarget=new THREE.Vector2();
   const targetPosition=new THREE.Vector3(),lookTarget=new THREE.Vector3(),lookAt=new THREE.Vector3(0,1.65,-.8),raycaster=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),-.07),hit=new THREE.Vector3(),rayPointer=new THREE.Vector2();
-  const backgroundColors=Object.fromEntries(SCENES.map(name=>[name,new THREE.Color(targets[name].background)]));
   let profile={...worlds[mode].profile};
   const lighting=targets[mode];key.color.setHex(lighting.key);rim.color.setHex(lighting.rim);fill.color.setHex(lighting.fill);key.intensity=lighting.intensity;
   const shell=container.closest('.stage-shell');
@@ -122,12 +121,12 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
     smoothed.lerp(pointer,damping);drag.lerp(dragTarget,damping);
     if(moving)transition.update(realDt);
     const weights=transition.visualWeights();
-    for(const property of ['azimuth','elevation','radius','lookY']){const target=SCENES.reduce((sum,name,i)=>sum+worlds[name].profile[property]*weights[i],0);profile[property]=THREE.MathUtils.lerp(profile[property],target,damping);}
+    for(const property of ['azimuth','elevation','radius','lookY','lookZ','fov','interior']){const target=SCENES.reduce((sum,name,i)=>sum+worlds[name].profile[property]*weights[i],0);profile[property]=THREE.MathUtils.lerp(profile[property],target,damping);}
     const age=elapsed-dropStarted,drop=age>=0&&age<4.5?Math.sin(age/4.5*Math.PI):0;
     const glide=transition.progress<1?Math.sin(transition.progress*Math.PI)*.35:0;const pose=cameraPose(profile,camera.aspect,smoothed,drag,elapsed,(mode==='party'?drop:0)+glide,introProgress);
-    targetPosition.set(pose.x,pose.y,pose.z);camera.position.lerp(targetPosition,damping);lookTarget.set(pose.lookX,pose.lookY,pose.lookZ);lookAt.lerp(lookTarget,damping);camera.lookAt(lookAt);camera.updateMatrixWorld();
+    targetPosition.set(pose.x,pose.y,pose.z);camera.position.lerp(targetPosition,damping);if(Math.abs(camera.fov-pose.fov)>.01){camera.fov=pose.fov;camera.updateProjectionMatrix();}lookTarget.set(pose.lookX,pose.lookY,pose.lookZ);lookAt.lerp(lookTarget,damping);camera.lookAt(lookAt);camera.updateMatrixWorld();
     crowdClock+=dt;
-    if(crowdClock>=1/30||!moving){SCENES.forEach((name,i)=>{if(weights[i]>.0001)worlds[name].update(elapsed,audioBeat*transition.weights[i],smoothed,name==='party'?drop:0);});crowdClock=0;}
+    if(crowdClock>=1/30||!moving){worlds.rig.update(elapsed,audioBeat,smoothed,drop,weights,moving?crowdClock:0);crowdClock=0;}
     rayPointer.set(smoothed.x,-smoothed.y);raycaster.setFromCamera(rayPointer,camera);raycaster.ray.intersectPlane(ground,hit);
     hit.x=THREE.MathUtils.clamp(hit.x,-10,10);hit.z=THREE.MathUtils.clamp(hit.z,-7,18);
     cursorLight.position.x=THREE.MathUtils.lerp(cursorLight.position.x,hit.x,damping);cursorLight.position.z=THREE.MathUtils.lerp(cursorLight.position.z,hit.z,damping);
@@ -140,42 +139,53 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
       for(let i=0;i<100;i++){if(particleLife[i]<=0)continue;particleLife[i]-=dt;for(let axis=0;axis<3;axis++)points[i*3+axis]+=particleVelocity[i*3+axis]*dt;if(particleLife[i]<=0)points[i*3+1]=-100;}
       particleGeometry.attributes.position.needsUpdate=true;
     }
-    frameCount++;renderer.info.reset();allowReflection=transition.progress===1&&(!reflectionReady||frameCount%6===0);
-    if(transition.progress<1){
-      SCENES.forEach((name,i)=>{if(weights[i]<1e-6)return;Object.entries(worlds).forEach(([key,w])=>w.group.visible=key===name);applyLighting(name);renderer.setRenderTarget(blendTargets[i]);renderer.render(scene,camera);if(!coarse)shadowCache[name]=key.shadow.map;});
-      renderer.setRenderTarget(null);dissolveMaterial.uniforms.weights.value.fromArray(weights);dissolveMaterial.uniforms.progress.value=transition.progress;dissolveMaterial.uniforms.origin.value.set(.5+smoothed.x*.35,.5-smoothed.y*.35);renderer.render(dissolveScene,dissolveCamera);transition.syncVisibility();
-    }else{applyLighting(mode);renderer.setRenderTarget(null);renderer.render(scene,camera);if(!coarse)shadowCache[mode]=key.shadow.map;}
+    frameCount++;renderer.info.reset();
+    const locationWeights=[weights[0],weights[1]+weights[2]],changingPlace=locationWeights.every(weight=>weight>.00001);
+    allowReflection=!changingPlace&&weights[2]>.01&&(!reflectionReady||frameCount%6===0);if(floorReflector)floorReflector.visible=weights[2]>.002;
+    applyLighting(weights);updateEnvironment(weights,frameCount%6===0||transition.progress===1);
+    if(changingPlace){
+      for(const [i,name]of ['ceremony','beach'].entries()){worlds.rig.showEnvironment(name);applyShadow(name);renderer.setRenderTarget(blendTargets[i]);renderer.render(scene,camera);if(!coarse)shadowCache[name]=key.shadow.map;}
+      renderer.setRenderTarget(null);dissolveMaterial.uniforms.weights.value.set(...locationWeights,0);dissolveMaterial.uniforms.progress.value=transition.progress;dissolveMaterial.uniforms.origin.value.set(.5+smoothed.x*.35,.5-smoothed.y*.35);renderer.render(dissolveScene,dissolveCamera);transition.syncVisibility();
+    }else{const name=weights[0]>.5?'ceremony':'beach';worlds.rig.showEnvironment(name);applyShadow(name);renderer.setRenderTarget(null);renderer.render(scene,camera);if(!coarse)shadowCache[name]=key.shadow.map;}
     audioBeat*=Math.exp(-dt*8);
     // Back off on slower devices after warmup instead of increasing render cost.
     if(moving&&transition.progress===1){frameBudget+=dt;budgetCount++;if(budgetCount===90){if(frameBudget/budgetCount>.026&&quality>.66){quality=Math.max(.65,quality*.86);resize();}frameBudget=0;budgetCount=0;}}
     if(moving)scheduleNext();
   }
-  function applyLighting(name){
-    const light=targets[name];key.color.setHex(light.key);key.intensity=light.intensity;rim.color.setHex(light.rim);rim.intensity=name==='party'?.65:1.1;fill.color.setHex(light.fill);fill.intensity=name==='party'?8+audioBeat*8:8;
-    ambient.color.setHex(light.sky);ambient.groundColor.setHex(light.ground);ambient.intensity=light.ambient;scene.background=backgroundColors[name];scene.fog.color.setHex(light.background);scene.fog.density=light.fog;scene.environmentIntensity=light.environment;scene.environment=environmentTargets[name].texture;
-    if(!coarse){key.shadow.map=shadowCache[name]??null;renderer.shadowMap.needsUpdate=!shadowCache[name]||frameCount%6===0||!moving;}
+  const lightColors=Object.fromEntries(SCENES.map(name=>[name,Object.fromEntries(['key','rim','fill','sky','ground','background'].map(key=>[key,new THREE.Color(targets[name][key])]))]));
+  function applyLighting(weights){
+    const mixColor=(color,property)=>{color.setRGB(0,0,0);SCENES.forEach((name,i)=>{const c=lightColors[name][property],w=weights[i];color.r+=c.r*w;color.g+=c.g*w;color.b+=c.b*w;});};
+    mixColor(key.color,'key');mixColor(rim.color,'rim');mixColor(fill.color,'fill');mixColor(ambient.color,'sky');mixColor(ambient.groundColor,'ground');mixColor(scene.fog.color,'background');
+    key.intensity=SCENES.reduce((sum,name,i)=>sum+targets[name].intensity*weights[i],0);ambient.intensity=SCENES.reduce((sum,name,i)=>sum+targets[name].ambient*weights[i],0);rim.intensity=1.1-weights[2]*.45;fill.intensity=8+audioBeat*weights[2]*8;scene.fog.density=SCENES.reduce((sum,name,i)=>sum+targets[name].fog*weights[i],0);scene.environmentIntensity=SCENES.reduce((sum,name,i)=>sum+targets[name].environment*weights[i],0);scene.background=scene.fog.color;
   }
+  function applyShadow(name){if(!coarse){key.shadow.map=shadowCache[name]??null;renderer.shadowMap.needsUpdate=!shadowCache[name]||frameCount%6===0||!moving;}}
+  const envTarget=new THREE.WebGLRenderTarget(environmentTargets.ceremony.width,environmentTargets.ceremony.height,{type:THREE.HalfFloatType,depthBuffer:false});envTarget.texture.mapping=THREE.CubeUVReflectionMapping;envTarget.texture.colorSpace=THREE.LinearSRGBColorSpace;
+  const envScene=new THREE.Scene(),envCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1),envMaterial=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,toneMapped:false,uniforms:{a:{value:environmentTargets.ceremony.texture},b:{value:environmentTargets.cocktail.texture},c:{value:environmentTargets.party.texture},weights:{value:new THREE.Vector3(1,0,0)}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'varying vec2 vUv;uniform sampler2D a;uniform sampler2D b;uniform sampler2D c;uniform vec3 weights;void main(){gl_FragColor=vec4(texture2D(a,vUv).rgb*weights.x+texture2D(b,vUv).rgb*weights.y+texture2D(c,vUv).rgb*weights.z,1.);}'});envScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),envMaterial));
+  let lastEnvironmentWeights=[-1,-1,-1];
+  function updateEnvironment(weights,allow=true){if(!allow||weights.every((w,i)=>Math.abs(w-lastEnvironmentWeights[i])<.00001))return;envMaterial.uniforms.weights.value.fromArray(weights);renderer.setRenderTarget(envTarget);renderer.render(envScene,envCamera);renderer.setRenderTarget(null);scene.environment=envTarget.texture;lastEnvironmentWeights=[...weights];}
   function scheduleNext(){if(!disposed&&!contextLost&&visible&&!document.hidden&&animationId===null)animationId=requestAnimationFrame(animate);}
-  const initial=cameraPose(profile,camera.aspect,pointer,drag,0,0,introProgress);camera.position.set(initial.x,initial.y,initial.z);lookAt.set(initial.lookX,initial.lookY,initial.lookZ);camera.lookAt(lookAt);camera.updateMatrixWorld();
+  const initial=cameraPose(profile,camera.aspect,pointer,drag,0,0,introProgress);camera.fov=initial.fov;camera.updateProjectionMatrix();camera.position.set(initial.x,initial.y,initial.z);lookAt.set(initial.lookX,initial.lookY,initial.lookZ);camera.lookAt(lookAt);camera.updateMatrixWorld();
   function setMode(value){
     if(!transition.select(value,moving))return;
     cancelIntro();mode=value;dropStarted=-100;dragTarget.set(0,0);drag.set(0,0);
     shell.dataset.scene=value;container.setAttribute('aria-label','Interactive imagined '+worlds[mode].group.name+' scene. Move your pointer or drag to orbit.');renderer.shadowMap.needsUpdate=true;needsRender=true;schedule();
   }
   function lost(event){event.preventDefault();contextLost=true;stop();shell.classList.remove('ready');shell.classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view temporarily unavailable';}
-  function restored(){contextLost=false;Object.values(environmentTargets).forEach(target=>target.dispose());environmentTargets=environment();scene.environment=environmentTargets[mode].texture;Object.keys(shadowCache).forEach(name=>{shadowCache[name]?.dispose();delete shadowCache[name];});key.shadow.map=null;reflectionReady=false;resize();shell.classList.remove('unavailable');shell.classList.add('ready');schedule();}
+  function restored(){contextLost=false;Object.values(environmentTargets).forEach(target=>target.dispose());environmentTargets=environment();envMaterial.uniforms.a.value=environmentTargets.ceremony.texture;envMaterial.uniforms.b.value=environmentTargets.cocktail.texture;envMaterial.uniforms.c.value=environmentTargets.party.texture;lastEnvironmentWeights=[-1,-1,-1];Object.keys(shadowCache).forEach(name=>{shadowCache[name]?.dispose();delete shadowCache[name];});key.shadow.map=null;reflectionReady=false;resize();shell.classList.remove('unavailable');shell.classList.add('ready');schedule();}
   renderer.domElement.addEventListener('webglcontextlost',lost);renderer.domElement.addEventListener('webglcontextrestored',restored);
   shell.dataset.scene=mode;
-  // Precompile the direct and offscreen variants for each real 3D world.
-  for(const name of SCENES){Object.entries(worlds).forEach(([key,w])=>w.group.visible=key===name);applyLighting(name);renderer.setRenderTarget(null);await renderer.compileAsync(scene,camera);renderer.setRenderTarget(blendTargets[0]);await renderer.compileAsync(scene,camera);}
-  renderer.setRenderTarget(null);await renderer.compileAsync(dissolveScene,dissolveCamera);transition.syncVisibility();initialized=true;needsRender=true;schedule();
+  // Precompile the two places and all persistent equipment before interactions.
+  worlds.rig.setTier(2);
+  for(const name of ['ceremony','party']){const weights=SCENES.map(scene=>scene===name?1:0);worlds.rig.update(0,0,pointer,0,weights,0);worlds.rig.showEnvironment(name);applyLighting(weights);updateEnvironment(weights);renderer.setRenderTarget(null);await renderer.compileAsync(scene,camera);renderer.setRenderTarget(blendTargets[0]);await renderer.compileAsync(scene,camera);}
+  renderer.setRenderTarget(null);await renderer.compileAsync(dissolveScene,dissolveCamera);await renderer.compileAsync(envScene,envCamera);worlds.rig.setTier(initialTier);worlds.rig.update(0,0,pointer,0,transition.visualWeights(),0);updateEnvironment(transition.visualWeights());transition.syncVisibility();initialized=true;needsRender=true;schedule();
   return {
     setMode,
+    setTier(index){worlds.rig.setTier(index);needsRender=true;crowdClock=1;reflectionReady=false;renderer.shadowMap.needsUpdate=true;schedule();},
     setMotion(value){moving=value;needsRender=true;pointer.set(0,0);pointerInside=false;release();if(!value){cancelIntro();transition.finish();cursorMaterial.opacity=0;cursorRing.material.opacity=0;}renderer.shadowMap.needsUpdate=true;schedule();},
     setBeat(value){if(moving)audioBeat=value;},
     setScroll(){},
     drop(){if(moving){dropStarted=elapsed;dragTarget.set(0,0);needsRender=true;schedule();}},
-    getStats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,scene:mode,crowd:worlds[mode].guests,moving,renderPixels:renderer.domElement.width*renderer.domElement.height,quality,shadowMap:renderer.shadowMap.enabled,webgl:true};},
-    dispose(){disposed=true;stop();resizeObserver.disconnect();visibilityObserver.disconnect();release();container.removeEventListener('pointermove',point);container.removeEventListener('pointerleave',leave);container.removeEventListener('pointerdown',down);container.removeEventListener('pointerup',release);container.removeEventListener('pointercancel',release);document.removeEventListener('visibilitychange',visibilityChange);window.removeEventListener('scroll',invalidateBounds);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('webglcontextrestored',restored);blendTargets.forEach(target=>target.dispose());Object.values(shadowCache).forEach(map=>map?.dispose());floorReflector?.dispose();Object.values(environmentTargets).forEach(target=>target.dispose());renderer.dispose();}
+    getStats(){return {drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,scene:mode,tier:worlds.rig.getTier(),crowd:worlds[mode].guests,moving,renderPixels:renderer.domElement.width*renderer.domElement.height,quality,shadowMap:renderer.shadowMap.enabled,webgl:true};},
+    dispose(){disposed=true;stop();resizeObserver.disconnect();visibilityObserver.disconnect();release();container.removeEventListener('pointermove',point);container.removeEventListener('pointerleave',leave);container.removeEventListener('pointerdown',down);container.removeEventListener('pointerup',release);container.removeEventListener('pointercancel',release);document.removeEventListener('visibilitychange',visibilityChange);window.removeEventListener('scroll',invalidateBounds);renderer.domElement.removeEventListener('webglcontextlost',lost);renderer.domElement.removeEventListener('webglcontextrestored',restored);blendTargets.forEach(target=>target.dispose());Object.values(shadowCache).forEach(map=>map?.dispose());floorReflector?.dispose();envTarget.dispose();envMaterial.dispose();envScene.children[0].geometry.dispose();dissolveMaterial.dispose();dissolveScene.children[0].geometry.dispose();Object.values(environmentTargets).forEach(target=>target.dispose());renderer.dispose();}
   };
 }

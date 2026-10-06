@@ -10,6 +10,16 @@ const roofFaces=[[[ -8.5,4.55,6],[8.5,4.55,6],[4,7.25,-.5],[-4,7.25,-.5]],[[8.5,
 for(const face of roofFaces){const uv=face.length===4?[[0,0],[1,0],[1,1],[0,1]]:[[0,0],[1,0],[.5,1]];for(let i=1;i<face.length-1;i++){roofPositions.push(...face[0],...face[i],...face[i+1]);roofUvs.push(...uv[0],...uv[i],...uv[i+1]);}}
 roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofPositions,3));roofGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(roofUvs,2));roofGeometry.computeVertexNormals();
 function seeded(value){let seed=value;return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};}
+const smooth=(a,b,value)=>{const t=Math.max(0,Math.min(1,(value-a)/(b-a)));return t*t*(3-2*t);};
+export const shoreline=x=>-19.5+Math.sin(x*.065)*3.4+Math.cos(x*.14)*1.5;
+export function lighthouseTerrainHeight(x,z){
+ const coast=z-shoreline(x),land=smooth(-2,4,coast),hill=3.65*Math.exp(-((x+8.3)**2/46+(z+8.7)**2/39));
+ const ridges=.23*Math.sin(x*.15+z*.09)+.15*Math.sin(z*.27-x*.12);
+ let y=-.46+land*(.64+hill+ridges);
+ const deck=smooth(0,1.8,Math.max(Math.abs(x)-7.3,Math.abs(z-.75)-6.55));y=y*deck-.06*(1-deck);
+ if(Math.abs(x+8.3)<.92&&z>-7.0&&z<2.3)y=Math.min(y,Math.max(-.03,(2.05-z)/8.84*3.6-.10));
+ return y;
+}
 export function createPlaceBuilder(palette){
  const boxGeometry=new THREE.BoxGeometry(1,1,1),sphereGeometry=new THREE.SphereGeometry(1,14,9),cylinderGeometry=new THREE.CylinderGeometry(1,1,1,12);
  function mesh(parent,geometry,material,x=0,y=0,z=0,scale=[1,1,1]){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.scale.set(...scale);m.castShadow=!material.transparent&&!material.isShaderMaterial&&!material.isMeshBasicMaterial;m.receiveShadow=true;parent.add(m);return m;}
@@ -27,7 +37,8 @@ export function createPlaceBuilder(palette){
    #include <colorspace_fragment>
   }`});
   const dome=mesh(parent,new THREE.SphereGeometry(100,32,16),material,0,0,0);dome.name='Procedural sky';dome.frustumCulled=false;dome.renderOrder=-5;dome.castShadow=false;
-  if(kind==='party'){const random=seeded(922),points=[];for(let i=0;i<110;i++){const angle=random()*Math.PI*2,y=.12+random()*.80,r=Math.sqrt(1-y*y);points.push(Math.sin(angle)*r*92,y*92,Math.cos(angle)*r*92);}const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));parent.add(new THREE.Points(geometry,new THREE.PointsMaterial({color:0xc2d3e4,size:.11,transparent:true,opacity:.60,depthWrite:false})));}
+  {const random=seeded(922),points=[];for(let i=0;i<110;i++){const angle=random()*Math.PI*2,y=.12+random()*.80,r=Math.sqrt(1-y*y);points.push(Math.sin(angle)*r*92,y*92,Math.cos(angle)*r*92);}const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));parent.add(new THREE.Points(geometry,new THREE.PointsMaterial({color:0xc2d3e4,size:.11,transparent:true,opacity:kind==='party'?.60:0,depthWrite:false})));}
+  return dome;
  }
  function water(parent){
   const material=new THREE.ShaderMaterial({uniforms:{time:{value:0},shallow:{value:new THREE.Color(0x62c5bc)},deep:{value:new THREE.Color(0x1c858f)}},vertexShader:'varying vec2 vUv;varying vec3 vWorld;void main(){vUv=uv;vWorld=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vWorld,1.);}',fragmentShader:`varying vec2 vUv;varying vec3 vWorld;uniform float time;uniform vec3 shallow;uniform vec3 deep;
@@ -40,8 +51,7 @@ export function createPlaceBuilder(palette){
   return time=>material.uniforms.time.value=time;
  }
  function lighthouse(parent){
-  const group=new THREE.Group();group.name='Jupiter Inlet Lighthouse';group.position.set(-8.3,.25,-8.7);parent.add(group);
-  mesh(group,new THREE.CylinderGeometry(1.6,5.7,1.5,36),palette.grass,0,-.75,0);
+  const group=new THREE.Group();group.name='Jupiter Inlet Lighthouse';group.position.set(-8.3,lighthouseTerrainHeight(-8.3,-8.7),-8.7);parent.add(group);
   const profile=[[1.48,0],[1.48,.25],[1.40,.32],[1.23,3],[1.05,7],[.91,10.85],[.93,11.3]].map(([r,y])=>new THREE.Vector2(r,y));
   mesh(group,new THREE.LatheGeometry(profile,40),palette.brick);
   column(group,palette.ivory,0,.15,0,1.52,.28);column(group,palette.ivory,0,11.25,0,1.01,.16);
@@ -53,7 +63,6 @@ export function createPlaceBuilder(palette){
   mesh(group,new THREE.ConeGeometry(.96,.52,24),palette.black,0,12.97,0);column(group,palette.black,0,13.31,0,.038,.28);
   const lantern=new THREE.MeshBasicMaterial({color:0xffe2aa,toneMapped:false});ball(group,lantern,0,12.09,0,.16,.29,.16);
   for(const y of [2.0,5.3,8.6]){const radius=1.45-y*.047;box(group,palette.ivory,0,y,radius,.48,.90,.10);box(group,palette.black,0,y+.015,radius+.06,.32,.71,.04);}
-  for(let i=0;i<9;i++)box(group,palette.stone,0,-.03+i*.05,1.55+i*.25,1.15,.12,.31);
   group.userData.height=13.45;return group;
  }
  function banyan(parent){
@@ -114,13 +123,51 @@ export function createPlaceBuilder(palette){
   column(parent,palette.black,-11,.25,3.5,.70,.5);column(parent,palette.stone,-11,.54,3.5,.64,.06);
   if(night){const ember=new THREE.MeshBasicMaterial({color:0xffa24b,toneMapped:false});ball(parent,ember,-11,.60,3.5,.40,.06,.40);const glow=new THREE.PointLight(0xffb86f,15,6,1.8);glow.position.set(-11,.95,3.5);parent.add(glow);}
   for(const x of [-5.5,5.5]){const light=new THREE.PointLight(0xffd39a,night?48:8,17,1.8);light.position.set(x,3.75,.2);parent.add(light);}
+  // Interior joinery, woven bar face, shelves, bottles and plants reward the closer camera.
+  for(const y of [2.20,2.90])box(group,palette.darkWood,0,y,-6.43,6.0,.095,.32);
+  for(let i=0;i<22;i++){const x=-2.75+i*.26;column(group,i%3===0?palette.glass:i%3===1?palette.leaf:palette.gold,x,2.45,-6.42,.045,.39);column(group,palette.gold,x,2.67,-6.42,.018,.075);}
+  for(let i=0;i<32;i++){const x=-2.8+i*.175;rod(group,[x,.20,-4.80],[Math.min(2.9,x+.65),1.35,-4.80],.010,palette.darkWood);rod(group,[x,1.35,-4.78],[Math.min(2.9,x+.65),.20,-4.78],.010,palette.darkWood);}
+  for(const x of [-6.75,6.75])for(const z of [-3.7,2.8]){column(group,palette.cream,x,.25,z,.34,.50);const dummy=new THREE.Object3D(),leaves=new THREE.InstancedMesh(leafGeometry,palette.foliage,55);group.add(leaves);const random=seeded(Math.round((x+10)*100+z*10));for(let i=0;i<55;i++){const a=random()*Math.PI*2,r=random()*.62;dummy.position.set(x+Math.cos(a)*r,.65+random()*1.35,z+Math.sin(a)*r);dummy.rotation.set(-.7+random()*.9,a,random()*.3);dummy.scale.set(.30,.75,.55);dummy.updateMatrix();leaves.setMatrixAt(i,dummy.matrix);}}
+  for(const x of [-5,0,5]){column(group,palette.darkWood,x,4.11,-1.0,.09,.27);for(let i=0;i<5;i++){const a=i*Math.PI*2/5,blade=box(group,palette.wood,x+Math.cos(a)*.42,4.03,-1+Math.sin(a)*.42,.62,.025,.16);blade.rotation.y=-a;}ball(group,palette.peach,x,3.91,-1,.10,.045,.10);}
   group.userData.plan='Shared hip roof, bar, deck, planting, and courtyard geometry';
   return {group,roof};
  }
- function ceremony(parent){sky(parent,'ceremony');const updateWater=water(parent);box(parent,palette.grass,0,-.20,8,68,.12,43);box(parent,palette.wood,0,-.035,.75,15,.07,13);const tower=lighthouse(parent),updateTree=banyan(parent);
-  for(const x of [-7.2,7.2]){box(parent,palette.ivory,x,.48,.8,.08,.05,12.6);for(let z=-5;z<=7;z+=1.1)box(parent,palette.ivory,x,.26,z,.045,.52,.045);}
-  return {tower,update(time){updateWater(time);updateTree(time);}};
+ function terrain(parent){
+  const group=new THREE.Group();group.name='Lighthouse dune, shoreline and native planting';parent.add(group);
+  const geometry=new THREE.PlaneGeometry(110,82,110,82);geometry.rotateX(-Math.PI/2);geometry.translate(0,0,-5);
+  const position=geometry.attributes.position,colors=[],sand=new THREE.Color(0xcac0a2),green=new THREE.Color(0x748266),coquina=new THREE.Color(0xb6ac8e);
+  for(let i=0;i<position.count;i++){const x=position.getX(i),z=position.getZ(i),height=lighthouseTerrainHeight(x,z);position.setY(i,height);const coast=z-shoreline(x),bare=Math.max(1-smooth(0,4,coast),Math.exp(-((x+8.3)**2+(z+8.7)**2)/35)*.55);const color=green.clone().lerp(sand,bare).lerp(coquina,(Math.sin(x*.51+z*.22)+1)*.045);colors.push(color.r,color.g,color.b);}
+  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.computeVertexNormals();
+  const mat=palette.grass.clone();mat.color.setHex(0xffffff);mat.vertexColors=true;const ground=mesh(group,geometry,mat);ground.name='Contoured coastal dune';ground.userData.dynamic=true;
+  // The museum describes 34 steps between the deck and the tower base.
+  const top=lighthouseTerrainHeight(-8.3,-8.7);
+  for(let i=0;i<34;i++){const z=1.85-i*.26,y=(i+1)/34*top;box(group,palette.stone,-8.3,y-.065,z,1.45,.13,.275);for(const x of [-9.05,-7.55])if(i%4===0)column(group,palette.ivory,x,y+.45,z,.025,.9);}
+  for(const x of [-9.05,-7.55])rod(group,[x,.61,1.85],[x,top+.49,-6.73],.028,palette.ivory);
+  box(group,palette.wood,-7.72,.015,2.0,1.7,.07,1.1);
+  // A curved coquina edge around the dune and a sandy approach.
+  const path=new THREE.CatmullRomCurve3([V(-2,.04,10),V(-4,.04,8.3),V(-7,.04,5.6),V(-8.3,.04,2.6)]);
+  const pathPositions=[],pathUvs=[];
+  for(let i=0;i<45;i++){const t=i/44,p=path.getPoint(t),d=path.getTangent(t);for(const side of [-1,1]){const x=p.x+d.z*.65*side,z=p.z-d.x*.65*side;pathPositions.push(x,lighthouseTerrainHeight(x,z)+.028,z);pathUvs.push((side+1)/2,t*4);}}
+  const pathGeometry=new THREE.BufferGeometry();pathGeometry.setAttribute('position',new THREE.Float32BufferAttribute(pathPositions,3));pathGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(pathUvs,2));const indices=[];for(let i=0;i<44;i++){const n=i*2;indices.push(n,n+1,n+2,n+1,n+3,n+2);}pathGeometry.setIndex(indices);pathGeometry.computeVertexNormals();mesh(group,pathGeometry,palette.sand);
+  const random=seeded(8105),dummy=new THREE.Object3D(),shrubs=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),palette.leaf,420),leaves=new THREE.InstancedMesh(leafGeometry,palette.foliage,2100),rocks=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),palette.stone,90);group.add(shrubs,leaves,rocks);shrubs.castShadow=true;shrubs.receiveShadow=true;leaves.receiveShadow=true;rocks.receiveShadow=true;
+  const sites=[];
+  while(sites.length<420){const x=(random()-.5)*78,z=-28+random()*56;if(z<shoreline(x)+.5||(Math.abs(x)<7.8&&z>-6.4&&z<8.0)||(Math.abs(x+8.3)<1.1&&z>-7.5&&z<3)||(Math.hypot(x+8.3,z+8.7)<2.0))continue;sites.push([x,z]);}
+  sites.forEach(([x,z],i)=>{const y=lighthouseTerrainHeight(x,z),size=.28+random()*.75;dummy.position.set(x,y+size*.30,z);dummy.rotation.set(random()*.2,random()*6.28,random()*.2);dummy.scale.set(size,size*.56,size*.78);dummy.updateMatrix();shrubs.setMatrixAt(i,dummy.matrix);shrubs.setColorAt(i,new THREE.Color().setHSL(.23+random()*.08,.17+random()*.15,.30+random()*.15));
+   for(let j=0;j<5;j++){dummy.position.set(x+(random()-.5)*size*1.7,y+size*.35+random()*size*.6,z+(random()-.5)*size*1.5);dummy.rotation.set(random()*Math.PI,random()*6.28,random()*Math.PI);dummy.scale.setScalar(.22+random()*.25);dummy.updateMatrix();leaves.setMatrixAt(i*5+j,dummy.matrix);}
+  });
+  for(let i=0;i<90;i++){const x=-44+i*.99,z=shoreline(x)+.10+random()*1.0;dummy.position.set(x,lighthouseTerrainHeight(x,z)+.06,z);dummy.rotation.set(random(),random()*6.28,random());dummy.scale.set(.25+random()*.5,.12+random()*.2,.25+random()*.4);dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);}
+  // Palm scrub and hammock frame the deck without obscuring the landmark.
+  for(const [x,z,h]of [[-17,-5,5.8],[-21,4,6.2],[14,-9,7.2],[19,-5,6.4],[22,8,7.1],[-25,-12,5.4],[28,-16,6.5],[12,10,5.7]]){const tree=new THREE.Group();tree.position.y=lighthouseTerrainHeight(x,z);group.add(tree);palm(tree,x,z,h);}
+  // Pier and low keeper's building are secondary silhouettes beyond the ceremony.
+  box(group,palette.wood,-23,.20,-17.8,2.0,.14,8.4);for(const x of [-23.85,-22.15])for(const z of [-14,-17,-20])column(group,palette.wood,x,-.16,z,.085,.8);
+  box(group,palette.ivory,13.3,1.50+lighthouseTerrainHeight(13.3,-11),-11,4.8,3.0,3.2);box(group,palette.wood,13.3,3.04+lighthouseTerrainHeight(13.3,-11),-11,5.2,.18,3.6);
+  for(const x of [12,13.3,14.6])box(group,palette.darkWood,x,1.5+lighthouseTerrainHeight(13.3,-11),-9.36,.64,1.75,.045);
+  return {ground,top,sites};
  }
- function beachHouse(parent,night){sky(parent,night?'party':'cocktail');box(parent,palette.gravel,0,-.19,4.0,70,.22,50);const structure=pavilion(parent,night);return structure;}
+ function ceremony(parent){const dome=sky(parent,'ceremony'),land=terrain(parent),updateWater=water(parent);box(parent,palette.wood,0,-.035,.75,15,.07,13);const tower=lighthouse(parent),updateTree=banyan(parent);
+  for(const x of [-7.2,7.2]){box(parent,palette.ivory,x,.48,.8,.08,.05,12.6);for(let z=-5;z<=7;z+=1.1)box(parent,palette.ivory,x,.26,z,.045,.52,.045);}
+  return {tower,dome,terrain:land,update(time){updateWater(time);updateTree(time);}};
+ }
+ function beachHouse(parent,night){const dome=sky(parent,night?'party':'cocktail');box(parent,palette.gravel,0,-.19,4.0,70,.22,50);const structure=pavilion(parent,night);return {...structure,dome};}
  return {ceremony,beachHouse};
 }
