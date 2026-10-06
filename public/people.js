@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from './vendor/BufferGeometryUtils.js';
+import {createArmGeometry,attachArmDeformation,ARM_UPPER,ARM_FOREARM,ARM_MAX_BEND} from './arms.js?v=20261006-arms';
 
 // Authored anatomy and clothing. Shared geometry, materials and textures for every guest.
 export const skinTones=[0xf0d1b9,0xe8c3a9,0xe3b89b,0xd8a787,0xc89675,0xa57556,0x78523d];
@@ -107,7 +108,7 @@ function hairGeometry(coarse){
   return geometry;
 }
 function handGeometry(coarse){
-  const parts=[ellipsoid(0,-.035,0,.026,.039,.013,coarse?8:10,coarse?5:6)];
+  const parts=[ellipsoid(0,-.032,0,.029,.049,.014,coarse?8:10,coarse?5:6)];
   for(let i=0;i<4;i++){
     const finger=new THREE.CapsuleGeometry(.0047,.027-(i===0||i===3?.006:0),coarse?1:2,coarse?5:6);
     finger.rotateZ((i-1.5)*.025);finger.translate((i-1.5)*.012,-.077,0);parts.push(finger);
@@ -151,18 +152,24 @@ export function createCrowdModels(parent,guests,palette,random,{coarse=false}={}
   const hair=material({color:0xffffff,roughness:.56,bumpMap:hairGrain,bumpScale:.0012,envMapIntensity:.65});
   const cloth=palette.cloth.clone();cloth.vertexColors=true;ownedMaterials.push(cloth);
   const limb=material({color:0xffffff,roughness:.72,bumpMap:skinGrain,bumpScale:.00055});
+  const armMaterial=attachArmDeformation(material({color:0xffffff,vertexColors:true,roughness:.67,bumpMap:skinGrain,bumpScale:.00055}));
+  const armDepth=attachArmDeformation(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}),{color:false});
+  const armDistance=attachArmDeformation(new THREE.MeshDistanceMaterial(),{color:false});ownedMaterials.push(armDepth,armDistance);
   const face=material({color:0xffffff,vertexColors:true,roughness:.61});
   const eyes=material({color:0xc9c3b3,roughness:.31}),iris=material({color:0xffffff,vertexColors:true,roughness:.28});
   const shirt=material({color:0xf2f0e8,vertexColors:true,roughness:.84}),shoes=material({color:0xffffff,roughness:.38,envMapIntensity:.8});
   const shoeGeometry=combine([ellipsoid(0,-.049,.050,.049,.041,.118,coarse?8:12,coarse?6:8),new THREE.BoxGeometry(.087,.014,.219).translate(0,-.086,.047)]);
-  const geometries={torso:torsoGeometry(coarse),head:headGeometry(coarse),neck:new THREE.CylinderGeometry(.043,.049,.095,coarse?8:12),hair:hairGeometry(coarse),arms:limbGeometry(.047,1.07,coarse),hands:handGeometry(coarse),legs:limbGeometry(.069,1.12,coarse),shoes:shoeGeometry,dress:skirtGeometry(coarse),eyes:eyeGeometry(),iris:irisGeometry(),features:facialGeometry(),tailoring:tailoringGeometry()};
-  const materials={torso:cloth,head:skin,neck:skin,hair,arms:limb,hands:skin,legs:limb,shoes,dress:palette.cloth,eyes,iris,features:face,tailoring:shirt};
-  const sizes={arms:count*4,hands:count*2,legs:count*4,shoes:count*2,eyes:count*2,iris:count*2},instances={};
+  const geometries={torso:torsoGeometry(coarse),head:headGeometry(coarse),neck:new THREE.CylinderGeometry(.043,.049,.095,coarse?8:12),hair:hairGeometry(coarse),arms:createArmGeometry(coarse),hands:handGeometry(coarse),legs:limbGeometry(.069,1.12,coarse),shoes:shoeGeometry,dress:skirtGeometry(coarse),eyes:eyeGeometry(),iris:irisGeometry(),features:facialGeometry(),tailoring:tailoringGeometry()};
+  const materials={torso:cloth,head:skin,neck:skin,hair,arms:armMaterial,hands:skin,legs:limb,shoes,dress:palette.cloth,eyes,iris,features:face,tailoring:shirt};
+  const sizes={arms:count*2,hands:count*2,legs:count*4,shoes:count*2,eyes:count*2,iris:count*2},instances={};
   for(const [name,geometry]of Object.entries(geometries)){
     const object=new THREE.InstancedMesh(geometry,materials[name],sizes[name]??count);object.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     object.frustumCulled=false;object.castShadow=!['eyes','iris','features','tailoring'].includes(name);object.receiveShadow=true;
     object.name='Persistent guest '+name;object.userData.actorIds=guests.map(g=>g.id);parent.add(object);instances[name]=object;
   }
+  instances.arms.customDepthMaterial=armDepth;instances.arms.customDistanceMaterial=armDistance;
+  const armAttributes={joint:new THREE.InstancedBufferAttribute(new Float32Array(count*8),4).setUsage(THREE.DynamicDrawUsage),body:new THREE.InstancedBufferAttribute(new Float32Array(count*4),2),skin:new THREE.InstancedBufferAttribute(new Float32Array(count*6),3),cloth:new THREE.InstancedBufferAttribute(new Float32Array(count*6),3)};
+  for(const [key,name]of Object.entries({joint:'armJoint',body:'armBody',skin:'armSkin',cloth:'armCloth'}))geometries.arms.setAttribute(name,armAttributes[key]);
   const morphState={morphTargetInfluences:[]};
   function setMorph(name,index,values){morphState.morphTargetInfluences=values;instances[name].setMorphAt(index,morphState);}
   guests.forEach((guest,i)=>{
@@ -175,7 +182,8 @@ export function createCrowdModels(parent,guests,palette,random,{coarse=false}={}
     for(let side=0;side<2;side++){
       instances.hands.setColorAt(i*2+side,skinColor);instances.iris.setColorAt(i*2+side,new THREE.Color([0x667b76,0x76603d,0x556b85,0x493e32][i%4]));
       instances.shoes.setColorAt(i*2+side,new THREE.Color(guest.dress?0x8e7964:0x1f2228));
-      for(let segment=0;segment<2;segment++){instances.arms.setColorAt(i*4+side*2+segment,guest.dress?skinColor:color);instances.legs.setColorAt(i*4+side*2+segment,guest.dress?skinColor:new THREE.Color(i%3?0x303745:0x554d42));}
+      armAttributes.body.setXY(i*2+side,guest.dress?0:1,guest.build);armAttributes.skin.setXYZ(i*2+side,skinColor.r,skinColor.g,skinColor.b);armAttributes.cloth.setXYZ(i*2+side,color.r,color.g,color.b);
+      for(let segment=0;segment<2;segment++)instances.legs.setColorAt(i*4+side*2+segment,guest.dress?skinColor:new THREE.Color(i%3?0x303745:0x554d42));
       setMorph('hands',i*2+side,[0]);
     }
     setMorph('dress',i,[0]);
@@ -191,6 +199,10 @@ export function createCrowdModels(parent,guests,palette,random,{coarse=false}={}
   const pivot=new THREE.Matrix4(),unpivot=new THREE.Matrix4().makeTranslation(0,-.86,0),rotation=new THREE.Matrix4(),headRotation=new THREE.Matrix4();
   const shoulder=new THREE.Vector3(),wrist=new THREE.Vector3(),hip=new THREE.Vector3(),ankle=new THREE.Vector3(),bend=new THREE.Vector3(),axis=new THREE.Vector3(),normal=new THREE.Vector3(),joint=new THREE.Vector3(),end=new THREE.Vector3(),direction=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
   const handTurn=new THREE.Quaternion().setFromAxisAngle(up,Math.PI);
+  const down=new THREE.Vector3(0,-1,0),upperTurn=new THREE.Quaternion(),inverseUpper=new THREE.Quaternion(),elbowTurn=new THREE.Quaternion(),elbowAxis=new THREE.Vector3(),forearm=new THREE.Vector3();
+  const elbowPoles=new Float64Array(count*6),previousPole=new THREE.Vector3(),poleTurn=new THREE.Quaternion(),poleBlend=new THREE.Quaternion();
+  const armTargets=new Float64Array(count*6),armTargetReady=new Uint8Array(count*2),desiredAim=new THREE.Vector3(),previousAim=new THREE.Vector3();
+  const aimTurn=new THREE.Quaternion(),aimBlend=new THREE.Quaternion();
   const appearance=new Float64Array(count*4),joints=new Float64Array(count*24),previous=guests.map(g=>({x:g.x,z:g.z,walk:0,stride:g.phase}));
   const lastSeated=new Float64Array(count).fill(-1),lastGrip=new Float64Array(count*2).fill(-1),oneMorph=[0];
   let clock=0,danceClock=0;
@@ -198,11 +210,21 @@ export function createCrowdModels(parent,guests,palette,random,{coarse=false}={}
     dummy.position.set(x,y,z);dummy.scale.set(sx,sy,sz);dummy.rotation.set(rx,ry,rz);dummy.updateMatrix();result.multiplyMatrices(frame,dummy.matrix);instances[name].setMatrixAt(index,result);
   }
   function bone(name,index,a,b,radiusScale){direction.subVectors(b,a);const length=direction.length();dummy.position.copy(a).add(b).multiplyScalar(.5);dummy.quaternion.setFromUnitVectors(up,direction.normalize());dummy.scale.set(radiusScale,length,radiusScale);dummy.updateMatrix();instances[name].setMatrixAt(index,dummy.matrix);}
-  function solve(name,index,a,b,bendDirection,l1,l2,radiusScale){
-    axis.subVectors(b,a);const distance=clamp(axis.length(),Math.abs(l1-l2)+.002,l1+l2-.002);axis.normalize();end.copy(a).addScaledVector(axis,distance);
+  function solve(a,b,bendDirection,l1,l2,maxBend=Math.PI,poleIndex=-1,dt=0){
+    const minimum=Math.sqrt(l1*l1+l2*l2+2*l1*l2*Math.cos(maxBend));
+    axis.subVectors(b,a);const distance=clamp(axis.length(),Math.max(minimum,Math.abs(l1-l2)+.002),l1+l2-.002);axis.normalize();end.copy(a).addScaledVector(axis,distance);
     normal.copy(bendDirection).addScaledVector(axis,-bendDirection.dot(axis));if(normal.lengthSq()<1e-8)normal.set(0,0,1).addScaledVector(axis,-axis.z);normal.normalize();
+    if(poleIndex>=0){
+      previousPole.fromArray(elbowPoles,poleIndex*3).addScaledVector(axis,-previousPole.dot(axis));
+      if(previousPole.lengthSq()>1e-8){
+        previousPole.normalize();const turn=Math.acos(clamp(previousPole.dot(normal),-1,1));
+        poleTurn.setFromUnitVectors(previousPole,normal);poleBlend.identity().slerp(poleTurn,turn>1e-6?Math.min(1,dt*3/turn):1);
+        normal.copy(previousPole).applyQuaternion(poleBlend);
+      }
+      normal.toArray(elbowPoles,poleIndex*3);
+    }
     const along=(l1*l1-l2*l2+distance*distance)/(2*distance),away=Math.sqrt(Math.max(0,l1*l1-along*along));joint.copy(a).addScaledVector(axis,along).addScaledVector(normal,away);
-    bone(name,index,a,joint,radiusScale);bone(name,index+1,joint,end,radiusScale*.84);b.copy(end);return joint;
+    b.copy(end);return joint;
   }
   function point(vector,frame,x,y,z){return vector.set(x,y,z).applyMatrix4(frame);}
   function update(time,beat=0,weights=[1,0,0],dt=1/30){
@@ -223,8 +245,8 @@ export function createCrowdModels(parent,guests,palette,random,{coarse=false}={}
       place('dress',i,root,0,0,0,g.dress?1:.00001,g.dress?1:.00001,g.dress?1:.00001);if(lastSeated[i]!==seated){oneMorph[0]=seated;setMorph('dress',i,oneMorph);lastSeated[i]=seated;skirtChanged=true;}
       appearance.set([blink,bodyRoll,travel,energy],i*4);
       for(let side=0;side<2;side++){
-        const sign=side?1:-1,style=g.motionStyle,armIndex=i*4+side*2;
-        let wx=sign*(.25-.075*seated),wy=.845+.015*seated,wz=.055+.21*seated;
+        const sign=side?1:-1,style=g.motionStyle,armIndex=i*2+side,legIndex=i*4+side*2;
+        let wx=sign*(.225-.055*seated),wy=.815+.090*seated,wz=.075+.20*seated;
         const walkSwing=Math.sin(prior.stride+side*Math.PI)*travel*(1-seated);wz+=walkSwing*.10;
         const holding=side===1&&!g.dj?cocktail:0;wy+=holding*.265;wz+=holding*.20;
         let px=sign*.28,py=1.02,pz=.16;
@@ -233,24 +255,38 @@ export function createCrowdModels(parent,guests,palette,random,{coarse=false}={}
         if(style===3){px=sign*.18;py=1.28;pz=.31;}
         if(style===5){px=sign*.25;py=1.10+Math.sin(phase+side)*.075;pz=.19;}
         wx=THREE.MathUtils.lerp(wx,px,energy);wy=THREE.MathUtils.lerp(wy,py,energy);wz=THREE.MathUtils.lerp(wz,pz,energy);
-        if(g.dj){const playing=cocktail+dance;wx=THREE.MathUtils.lerp(wx,sign*.26,playing);wy=THREE.MathUtils.lerp(wy,1.63,playing);wz=THREE.MathUtils.lerp(wz,.45,playing);}
-        point(shoulder,torso,sign*.203,1.346,0);point(wrist,root,wx,wy,wz);
+        if(g.dj){const playing=cocktail+dance;wx=THREE.MathUtils.lerp(wx,sign*.26,playing);wy=wy*(1-playing)+(1.32*cocktail+1.82*dance)/h;wz=THREE.MathUtils.lerp(wz,.45,playing);}
+        point(shoulder,torso,sign*.174,1.315,0);point(wrist,root,wx,wy,wz);
         if((i===24&&side===1)||(i===25&&side===0)){
           const a=guests[24],b=guests[25],t=weights[0];wrist.lerp(holdTarget.set((a.x+b.x)/2,1.03*(a.height+b.height)/2,(a.z+b.z)/2+.10),t);
         }
-        bend.set(sign*.4,-.22,.9).transformDirection(root);solve('arms',armIndex,shoulder,wrist,bend,.284*h,.258*h,h*g.build);
-        dummy.position.copy(wrist);dummy.quaternion.setFromUnitVectors(up,direction.subVectors(joint,wrist).normalize());if(side===1)dummy.quaternion.multiply(handTurn);dummy.scale.set(h,h,h);dummy.updateMatrix();instances.hands.setMatrixAt(i*2+side,dummy.matrix);
+        desiredAim.subVectors(wrist,shoulder);previousAim.fromArray(armTargets,armIndex*3);
+        if(armTargetReady[armIndex]&&step>0){
+          const alpha=1-Math.exp(-step*8),length=THREE.MathUtils.lerp(previousAim.length(),desiredAim.length(),alpha);
+          previousAim.normalize();desiredAim.normalize();const turn=Math.acos(clamp(previousAim.dot(desiredAim),-1,1));
+          aimTurn.setFromUnitVectors(previousAim,desiredAim);aimBlend.identity().slerp(aimTurn,turn>1e-6?Math.min(alpha,step*2.2/turn):1);
+          previousAim.applyQuaternion(aimBlend).multiplyScalar(length);
+        }else previousAim.copy(desiredAim);
+        previousAim.toArray(armTargets,armIndex*3);armTargetReady[armIndex]=1;wrist.copy(shoulder).add(previousAim);
+        bend.set(sign*.25,-.85,.45).transformDirection(root);solve(shoulder,wrist,bend,ARM_UPPER*h,ARM_FOREARM*h,ARM_MAX_BEND,armIndex,step);
+        upperTurn.setFromUnitVectors(down,direction.subVectors(joint,shoulder).normalize());inverseUpper.copy(upperTurn).invert();
+        forearm.subVectors(wrist,joint).normalize().applyQuaternion(inverseUpper);elbowTurn.setFromUnitVectors(down,forearm);
+        const angle=2*Math.acos(clamp(elbowTurn.w,-1,1));elbowAxis.set(elbowTurn.x,elbowTurn.y,elbowTurn.z);if(elbowAxis.lengthSq()<1e-8)elbowAxis.set(1,0,0);else elbowAxis.normalize();
+        armAttributes.joint.setXYZW(armIndex,elbowAxis.x,elbowAxis.y,elbowAxis.z,angle);
+        dummy.position.copy(shoulder);dummy.quaternion.copy(upperTurn);dummy.scale.setScalar(h);dummy.updateMatrix();instances.arms.setMatrixAt(armIndex,dummy.matrix);
+        dummy.position.copy(wrist);dummy.quaternion.copy(upperTurn).multiply(elbowTurn);if(side===1)dummy.quaternion.multiply(handTurn);dummy.scale.set(h,h,h);dummy.updateMatrix();instances.hands.setMatrixAt(armIndex,dummy.matrix);
         const grip=holding*.8;if(lastGrip[i*2+side]!==grip){oneMorph[0]=grip;setMorph('hands',i*2+side,oneMorph);lastGrip[i*2+side]=grip;gripChanged=true;}
-        const offset=i*24+side*12;joints.set([shoulder.x,shoulder.y,shoulder.z,joint.x,joint.y,joint.z,wrist.x,wrist.y,wrist.z,.284*h,.258*h,0],offset);
+        const offset=i*24+side*12;joints.set([shoulder.x,shoulder.y,shoulder.z,joint.x,joint.y,joint.z,wrist.x,wrist.y,wrist.z,ARM_UPPER*h,ARM_FOREARM*h,angle],offset);
         point(hip,root,sign*.098,.865,0);
         const footShift=Math.sin(prior.stride+side*Math.PI)*travel*.115+Math.sin(phase+side*Math.PI)*energy*.042;
         point(ankle,root,sign*(.12+.010*energy),0,.44*seated+footShift);ankle.y=.116*h+.012+Math.max(0,Math.sin(prior.stride+side*Math.PI))*travel*.04*(1-seated);
-        bend.set(0,.06,1).transformDirection(root);solve('legs',armIndex,hip,ankle,bend,.405*h,.391*h,h*g.build);
+        bend.set(0,.06,1).transformDirection(root);solve(hip,ankle,bend,.405*h,.391*h);bone('legs',legIndex,hip,joint,h*g.build);bone('legs',legIndex+1,joint,ankle,h*g.build*.84);
         dummy.position.copy(ankle);dummy.rotation.set(0,g.turn||0,0);dummy.scale.set(h*(g.dress?.88:1),h,h);dummy.updateMatrix();instances.shoes.setMatrixAt(i*2+side,dummy.matrix);
       }
       dummy.position.set(g.x,-g.z,0);dummy.rotation.set(0,0,0);dummy.scale.set(.56,.78,1);dummy.updateMatrix();shadows.setMatrixAt(i,dummy.matrix);
     });
     shadows.instanceMatrix.needsUpdate=true;
+    armAttributes.joint.needsUpdate=true;
     for(const object of Object.values(instances))object.instanceMatrix.needsUpdate=true;
     if(skirtChanged)instances.dress.morphTexture.needsUpdate=true;if(gripChanged)instances.hands.morphTexture.needsUpdate=true;
   }
