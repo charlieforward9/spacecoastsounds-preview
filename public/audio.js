@@ -1,4 +1,4 @@
-import {SCENES,TRANSITION_SECONDS,equalPowerMix} from './blend.js?v=20261005-mobile';
+import {SCENES,TRANSITION_SECONDS,equalPowerMix} from './blend.js?v=20261005-minimal';
 const files=['ceremony','cocktail','dance-floor'];
 export function createSceneAudio({button,onEnergy=()=>{},initialMode='ceremony',stage}){
   let mode=initialMode,requested=true,context,master,analyser,gains,sources,ready,error=false,loaded=false,unlocked=false,meterTimer,stageVisible=true,meterEnabled=true,lastPulse=0,previousEnergy=0;
@@ -9,6 +9,7 @@ export function createSceneAudio({button,onEnergy=()=>{},initialMode='ceremony',
     const status=error?'error':!requested?'muted':playing?'playing':context?.state==='running'?'loading':'armed';
     button.dataset.sound=status;button.setAttribute('aria-pressed',String(playing));
     button.setAttribute('aria-label',status==='playing'?'Mute scene audio':status==='muted'?'Enable scene audio':status==='error'?'Retry scene audio':'Start scene audio');
+    button.title=button.getAttribute('aria-label');
     button.querySelector('span').textContent={playing:'Sound on',muted:'Sound off',armed:'Tap for sound',loading:'Loading audio',error:'Retry sound'}[status];
     button.querySelector('svg').innerHTML=status==='playing'?'<path d="M4 9h4l5-4v14l-5-4H4zM17 8q6 4 0 8M17 11q2 1 0 2"/>':'<path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/>';
     if(playing&&stageVisible&&meterEnabled)startMeter();else stopMeter();
@@ -58,7 +59,7 @@ export function createSceneAudio({button,onEnergy=()=>{},initialMode='ceremony',
   function visibility(){if(document.hidden){stopMeter();context?.suspend().catch(()=>{});}else if(requested&&unlocked){context.resume().then(()=>{fadeMaster();state();}).catch(()=>state());}state();}
   document.addEventListener('visibilitychange',visibility);
   const observer=new IntersectionObserver(([entry])=>{stageVisible=entry.isIntersecting;state();});observer.observe(stage);
-  // Sound is requested on arrival; suspended contexts remain visibly armed.
+  // Sound is requested on arrival; the icon and accessible state reflect playback.
   enable();
   return {setMode,enable,setMeterEnabled(value){meterEnabled=value;state();},dispose(){stopMeter();observer.disconnect();button.removeEventListener('click',toggle);document.removeEventListener('pointerdown',activate);document.removeEventListener('keydown',activate);document.removeEventListener('visibilitychange',visibility);sources?.forEach(source=>source.stop());context?.close();}};
 }

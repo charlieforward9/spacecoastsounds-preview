@@ -9,19 +9,20 @@
   <title>Space Coast Sounds — Wedding DJ</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./motion.css?v=20261005-mobile">
-  <link rel="stylesheet" href="./experience.css?v=20261005-mobile">
-  <link rel="stylesheet" href="./mobile.css?v=20261005-mobile">
+  <link rel="stylesheet" href="./motion.css?v=20261005-minimal">
+  <link rel="stylesheet" href="./experience.css?v=20261005-minimal">
+  <link rel="stylesheet" href="./mobile.css?v=20261005-minimal">
+  <link rel="stylesheet" href="./minimal.css?v=20261005-minimal">
   <script defer src="./vendor/gsap/gsap.min.js"></script>
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
-  <script type="module" src="./app.js?v=20261005-mobile"></script>
+  <script type="module" src="./app.js?v=20261005-minimal"></script>
 </head>
 <body>
-  <div class="room-cursor" aria-hidden="true"><i></i><span>DRAG</span></div>
+  <div class="room-cursor" aria-hidden="true"><i></i></div>
   <a class="skip-link" href="#packages">Skip to packages</a>
   <header class="header">
     <a class="brand" href="#top" aria-label="Space Coast Sounds home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span>SPACE COAST<br><strong>SOUNDS</strong></span></a>
-    <nav aria-label="Main navigation"><a href="#experience">Scenes</a><a href="#packages">Prices</a><a href="https://www.instagram.com/spacecoastsounds/" aria-label="Space Coast Sounds on Instagram" target="_blank" rel="noopener noreferrer">Instagram <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="4"/><circle class="fill" cx="17" cy="7" r="1"/></svg></a></nav>
+    <nav aria-label="Social"><a href="https://www.instagram.com/spacecoastsounds/" aria-label="Space Coast Sounds on Instagram" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="4"/><circle class="fill" cx="17" cy="7" r="1"/></svg></a></nav>
     <a class="button button-small" href="#contact">Inquire</a>
   </header>
   <main id="top">
@@ -29,28 +30,32 @@
       <h1 id="hero-title" class="sr-only">Space Coast Sounds wedding DJ &amp; audio</h1>
       <div class="stage-shell" id="experience" data-scene="ceremony">
         <div class="stage-aura" aria-hidden="true"></div><div class="drop-ring" aria-hidden="true"></div>
-        <div class="stage-top"><span class="stage-label" id="scene-name">JUPITER LIGHTHOUSE</span></div>
-        <div id="stage" role="img" aria-label="Interactive 3D Jupiter Lighthouse ceremony with banyan tree and inlet water. Move your mouse or drag to orbit."><div class="stage-loading" id="stage-loading">Setting the scene…</div></div>
-        <button hidden class="drop-button" id="drop-button" type="button" aria-label="Drop the beat and play original preview audio"><span class="drop-play" aria-hidden="true">▶</span><span>DROP THE BEAT</span><span class="drop-tempo">120 BPM</span></button>
-        <div class="venue-intro" aria-hidden="true"><span>Space Coast Sounds</span><i></i></div>
+        <div id="stage" role="img" aria-label="Interactive 3D ceremony scene"><div class="stage-loading" id="stage-loading">Loading…</div></div>
         <div class="stage-controls">
-          <div class="mode-switch" role="group" aria-label="Choose a scene"><button type="button" data-mode="ceremony" aria-pressed="true"><span>Ceremony</span><svg class="phase-lock" hidden viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></button><button type="button" data-mode="cocktail" aria-pressed="false"><span>Cocktail</span><svg class="phase-lock" hidden viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></button><button type="button" data-mode="party" aria-pressed="false"><span>Reception</span><svg class="phase-lock" hidden viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></button></div>
-          <div class="scene-tools"><button id="sound-toggle" aria-pressed="false" aria-label="Enable scene audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span>Tap for sound</span></button><button id="motion-toggle" aria-pressed="true" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
+          <div class="mode-switch" role="group" aria-label="Choose a scene">
+            <button type="button" data-mode="ceremony" aria-pressed="true" aria-label="Ceremony" title="Ceremony"><svg class="phase-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="14" r="5"/><circle cx="15" cy="14" r="5"/><path d="m10 4 2-2 2 2-2 3z"/></svg><svg class="phase-lock" hidden viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></button>
+            <button type="button" data-mode="cocktail" aria-pressed="false" aria-label="Cocktail hour" title="Cocktail hour"><svg class="phase-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 8 8 8-8H4zm8 8v8m-4 0h8M16 4l3-3"/></svg><svg class="phase-lock" hidden viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></button>
+            <button type="button" data-mode="party" aria-pressed="false" aria-label="Reception" title="Reception"><svg class="phase-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M6 10a6 6 0 0 1 4-4m4 12a6 6 0 0 0 4-4"/></svg><svg class="phase-lock" hidden viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></button>
+          </div>
+          <div class="scene-tools">
+            <button type="button" id="sound-toggle" aria-pressed="false" aria-label="Enable scene audio" title="Enable scene audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span class="sr-only">Start scene audio</span></button>
+            <button type="button" id="motion-toggle" aria-pressed="true" aria-label="Pause motion" title="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button>
+            <button hidden class="drop-button" id="drop-button" type="button" aria-label="Pulse the dance floor" title="Pulse the dance floor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h6l-1 8 9-13h-7z"/></svg></button>
+          </div>
         </div>
-        <p class="stage-note"><span id="stage-hint">Drag to explore</span><span id="gear-caption">Ceremony + Reception · illustrated gear</span></p>
       </div>
     </section>
     <section class="packages section" id="packages" aria-labelledby="packages-title">
       <h2 id="packages-title" class="sr-only">Wedding packages</h2>
       <div class="comparison-board" id="comparison-board">
         <div class="package-strip" id="package-strip">
-          <article class="package-tile"><button type="button" class="package-choice" data-tier="0" aria-pressed="false"><span class="package-name">Reception</span><strong class="package-price">$800</strong><span class="package-hours">4 hours</span></button></article>
-          <article class="package-tile is-selected"><button type="button" class="package-choice" data-tier="1" aria-pressed="true"><span class="package-name">Ceremony + Reception</span><strong class="package-price">$1,000</strong><span class="package-hours">6 hours</span></button></article>
-          <article class="package-tile"><button type="button" class="package-choice" data-tier="2" aria-pressed="false"><span class="package-name">All-Day Audio</span><strong class="package-price">$1,400</strong><span class="package-hours">8 hours</span></button></article>
+          <article class="package-tile"><button type="button" class="package-choice" data-tier="0" aria-pressed="false"><span class="package-name">Reception</span><strong class="package-price">$800</strong><span class="package-hours">Up to 4 h</span></button></article>
+          <article class="package-tile is-selected"><button type="button" class="package-choice" data-tier="1" aria-pressed="true"><span class="package-name">Ceremony + Reception</span><strong class="package-price">$1,000</strong><span class="package-hours">Up to 6 h</span></button></article>
+          <article class="package-tile"><button type="button" class="package-choice" data-tier="2" aria-pressed="false"><span class="package-name">All-Day Audio</span><strong class="package-price">$1,400</strong><span class="package-hours">Up to 8 h</span></button></article>
         </div>
-        <div class="matrix-intro"><span>Scroll for the details <span aria-hidden="true">↓</span></span><span>Setup + teardown included</span></div>
+        <div class="matrix-intro"><span>Setup + teardown included</span></div>
         <div class="feature-matrix" id="comparison-body" role="group" aria-label="Package inclusions. Select a price, then tap an icon for details."></div>
-        <p class="comparison-key">Maximum hours · Lock: excluded · — Not listed</p>
+        <p class="comparison-key sr-only">Lock: excluded. — Not listed.</p>
       </div>
     </section>
     <section class="contact section" id="contact" aria-labelledby="contact-title">
@@ -58,6 +63,6 @@
       <form class="contact-form" id="inquiry-form"><div class="form-row"><label>Your name<input name="name" autocomplete="name" maxlength="100" required placeholder="Name"></label><label>Email<input name="email" type="email" autocomplete="email" maxlength="200" required placeholder="you@example.com"></label></div><div class="form-row"><label>Event date<input name="date" type="date" required></label><label>Venue / city<input name="venue" maxlength="180" placeholder="Venue / city" required></label></div><div class="form-row"><label>Package<select name="package" id="package-select"><option>Still deciding</option><option>Reception</option><option selected>Ceremony &amp; Reception</option><option>All-Day Audio</option></select></label><label>Music style<select name="vibe" id="vibe-input"><option>Still deciding</option><option>Classics &amp; soul</option><option>Throwbacks</option><option>Dance-floor energy</option><option>A mix of everything</option></select></label></div><label>Notes<textarea name="message" rows="2" maxlength="2500" placeholder="Guest count, songs…"></textarea></label><label class="honeypot" aria-hidden="true" tabindex="-1">Leave this empty<input name="company" tabindex="-1" autocomplete="off"></label><button class="button submit" type="submit">Send test inquiry <span aria-hidden="true">+</span></button><p class="form-disclosure">Preview form. Use sample details; not sent to Space Coast Sounds.</p><div id="form-status" class="form-status" role="status" aria-live="polite"></div></form>
     </section>
   </main>
-  <footer><span>Space Coast Sounds · Concept preview</span><a href="https://www.instagram.com/spacecoastsounds/" target="_blank" rel="noopener noreferrer">Instagram ↗</a></footer>
+  <footer><span>Concept preview</span></footer>
 </body>
 </html>

@@ -10,7 +10,7 @@ export function createMotionSystem({isEnabled}) {
   });
   function destroy(){
     dropCleanup?.kill();context?.revert();
-    const targets='.package-price,.brand-mark i,.drop-ring,.room-cursor,#scene-name';
+    const targets='.package-price,.brand-mark i,.drop-ring,.room-cursor,.mode-switch .phase-symbol';
     gsap.killTweensOf(targets);gsap.set(targets,{clearProps:'transform,opacity'});
     cleanups.forEach(clean=>clean());cleanups=[];cursor.classList.remove('is-dragging');stage.classList.remove('is-dropping');document.documentElement.classList.remove('motion-enabled');
   }
@@ -41,7 +41,7 @@ export function createMotionSystem({isEnabled}) {
   }
   function sceneChange(){
     if(!isEnabled())return;
-    gsap.fromTo('#scene-name',{y:8,opacity:.3},{y:0,opacity:1,duration:.5,stagger:.05,ease:'power3.out',overwrite:true});
+    gsap.fromTo('.mode-switch button[aria-pressed=true] .phase-symbol',{scale:.88,opacity:.6},{scale:1,opacity:1,duration:.4,ease:'power3.out',overwrite:true});
   }
   function drop(){
     if(!isEnabled())return;stage.classList.add('is-dropping');

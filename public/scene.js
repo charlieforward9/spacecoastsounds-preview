@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-mobile';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-minimal';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261005-mobile';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261005-mobile';
-import { TouchOrbitIntent } from './touch-orbit.js?v=20261005-mobile';
+import { SCENES, smoothstep } from './blend.js?v=20261005-minimal';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261005-minimal';
+import { TouchOrbitIntent } from './touch-orbit.js?v=20261005-minimal';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -179,7 +179,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   function setMode(value){
     if(!phaseAvailable(worlds.rig.getTier(),value)||!transition.select(value,moving))return false;
     cancelIntro();release();mode=value;dropStarted=-100;dragTarget.set(0,0);drag.set(0,0);
-    shell.dataset.scene=value;container.setAttribute('aria-label','Interactive imagined '+worlds[mode].group.name+' scene. Move your pointer or drag to orbit.');renderer.shadowMap.needsUpdate=true;needsRender=true;schedule();return true;
+    shell.dataset.scene=value;container.setAttribute('aria-label','Interactive 3D '+{ceremony:'ceremony',cocktail:'cocktail hour',party:'reception'}[mode]+' scene');renderer.shadowMap.needsUpdate=true;needsRender=true;schedule();return true;
   }
   function lost(event){event.preventDefault();contextLost=true;stop();shell.classList.remove('ready');shell.classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view temporarily unavailable';}
   function restored(){contextLost=false;Object.values(environmentTargets).forEach(target=>target.dispose());environmentTargets=environment();envMaterial.uniforms.a.value=environmentTargets.ceremony.texture;envMaterial.uniforms.b.value=environmentTargets.cocktail.texture;envMaterial.uniforms.c.value=environmentTargets.party.texture;lastEnvironmentWeights=[-1,-1,-1];Object.keys(shadowCache).forEach(name=>{shadowCache[name]?.dispose();delete shadowCache[name];});key.shadow.map=null;reflectionReady=false;resize();shell.classList.remove('unavailable');shell.classList.add('ready');schedule();}
