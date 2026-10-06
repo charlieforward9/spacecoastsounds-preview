@@ -1,6 +1,7 @@
-import { mountComparison } from './comparison.js?v=20261005-immersive';
-import { createSceneAudio } from './audio.js?v=20261005-immersive';
-import { createMotionSystem } from './motion.js?v=20261005-immersive';
+import { mountComparison } from './comparison.js?v=20261005-refine';
+import { createSceneAudio } from './audio.js?v=20261005-refine';
+import { createMotionSystem } from './motion.js?v=20261005-refine';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-refine';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let room, audio, motion = !reducedMotion.matches, motionSystem, currentMode = 'ceremony';
 const comparison = mountComparison();
@@ -8,6 +9,7 @@ const motionButton=document.getElementById('motion-toggle');
 function setMotion(value){motion=value;comparison.setMotion(value);audio?.setMeterEnabled(value);room?.setMotion(value);motionSystem?.setEnabled(value);document.documentElement.classList.toggle('motion-paused',!value);motionButton.setAttribute('aria-pressed',String(value));motionButton.setAttribute('aria-label',value?'Pause motion':'Resume motion');motionButton.innerHTML=value?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 12 7-12 7Z"/></svg>';}
 setMotion(motion);motionButton.addEventListener('click',()=>setMotion(!motion));reducedMotion.addEventListener('change',event=>setMotion(!event.matches));
 function changeMode(mode){
+  if(!phaseAvailable(comparison.getSelectedIndex(),mode))return false;
   currentMode=mode;
   document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===mode)));
   room?.setMode(mode);audio?.setMode(mode);
@@ -15,13 +17,15 @@ function changeMode(mode){
   document.getElementById('scene-name').textContent={ceremony:'JUPITER LIGHTHOUSE',cocktail:'TAYLOR BEACH HOUSE · SUNSET',party:'TAYLOR BEACH HOUSE · NIGHT'}[mode];
   document.getElementById('drop-button').hidden=mode!=='party';
   motionSystem?.sceneChange();
+  return true;
 }
+function updatePhaseControls(){document.querySelectorAll('[data-mode]').forEach(button=>{const available=phaseAvailable(comparison.getSelectedIndex(),button.dataset.mode);button.disabled=!available;button.setAttribute('aria-disabled',String(!available));button.title=available?'':`${button.textContent.trim()} is not included in the Reception package`;button.querySelector('.phase-lock').hidden=available;});}
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
 if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Tap a scene to explore';
-async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-immersive');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,initialTier:comparison.getSelectedIndex(),intro:scrollY<150});room.setMode(currentMode);room.setTier(comparison.getSelectedIndex());room.setMotion(motion);const shell=document.querySelector('.stage-shell');shell.classList.add('ready');if(currentMode==='ceremony'&&scrollY<150&&motion)shell.classList.add('intro-active');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view unavailable on this device';document.getElementById('stage-hint').textContent='Explore the packages below';}}
-document.getElementById('comparison-board').addEventListener('tierchange',event=>{room?.setTier(event.detail.index);updateGearLabel();if(event.detail.index===0&&currentMode!=='party')changeMode('party');});
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-refine');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,initialTier:comparison.getSelectedIndex(),intro:scrollY<150});room.setTier(comparison.getSelectedIndex());changeMode(resolvePhase(comparison.getSelectedIndex(),currentMode));room.setMotion(motion);const shell=document.querySelector('.stage-shell');shell.classList.add('ready');if(currentMode==='ceremony'&&scrollY<150&&motion)shell.classList.add('intro-active');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view unavailable on this device';document.getElementById('stage-hint').textContent='Explore the packages below';}}
+document.getElementById('comparison-board').addEventListener('tierchange',event=>{room?.setTier(event.detail.index);updateGearLabel();updatePhaseControls();const next=resolvePhase(event.detail.index,currentMode);if(next!==currentMode)changeMode(next);});
 function updateGearLabel(){const selected=comparison.getSelectedIndex();document.getElementById('gear-caption').textContent=selected===null?'Illustrative equipment':comparison.getSelected().title+' · illustrated gear';}
-updateGearLabel();
+updateGearLabel();updatePhaseControls();
 initRoom();
 motionSystem=createMotionSystem({getRoom:()=>room,isEnabled:()=>motion});
 audio=createSceneAudio({button:document.getElementById('sound-toggle'),stage:document.getElementById('stage'),initialMode:currentMode,onEnergy:value=>room?.setBeat(value)});

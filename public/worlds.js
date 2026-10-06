@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
 
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
-import { createPlaceBuilder } from './places.js?v=20261005-immersive';
-import { createMaterials } from './materials.js?v=20261005-immersive';
-import { tiers, audioProfile } from './packages.js?v=20261005-immersive';
-import { SceneBlend, SCENES } from './blend.js?v=20261005-immersive';
+import { createPlaceBuilder } from './places.js?v=20261005-refine';
+import { createMaterials } from './materials.js?v=20261005-refine';
+import { CrowdSolver } from './crowd.js?v=20261005-refine';
+import { tiers, audioProfile } from './packages.js?v=20261005-refine';
+import { SceneBlend, SCENES } from './blend.js?v=20261005-refine';
 
 export class SceneTransition extends SceneBlend {
   constructor(worlds,mode='ceremony'){super(mode);this.worlds=worlds;Object.values(worlds).forEach(w=>{w.group.position.set(0,0,0);w.group.scale.setScalar(1);});this.syncVisibility();}
@@ -82,7 +83,7 @@ export async function createWorlds({yieldToMain=false}={}) {
         const h=g.height,phase=phaseClock+g.phase;
         const dancing=danceMix*(g.dj?0:1),energy=.11+.89*dancing;
         const sway=Math.sin(phase)*.15*energy,bounce=(Math.sin(phase*2)+1)*.055*energy+beat*.035*energy;
-        const seated=g.seated||0,base=-.18*seated,x=g.x+sway,y=base+bounce,z=g.z,turn=(g.turn||0)+Math.sin(phase*.5)*.18*energy;
+        const seated=g.seated||0,base=-.18*seated,x=g.x,y=base+bounce,z=g.z,turn=(g.turn||0)+Math.sin(phase*.5)*.18*energy;
         set('torso',i,x,y+1.03*h,z,.95,h,.66,turn,Math.sin(phase)*.12*energy);
         set('head',i,x+sway*.2,y+1.55*h,z,.90,1.12*h,.92,turn);set('neck',i,x,y+1.39*h,z,1,h,1,turn);
         set('hair',i,x+sway*.2,y+1.55*h,z-.011,.93,1.12*h,.97,turn);
@@ -145,22 +146,23 @@ export async function createWorlds({yieldToMain=false}={}) {
   for(let i=0;i<33;i++){
     const side=i%6<3?-1:1,col=i%3,row=Math.floor(i/6);
     layouts.ceremony.push(i<24?{x:side*(1.6+col*.92),z:-.65+row*1.30,turn:Math.PI,seated:1}:i===24?{x:-.56,z:-2.55}:i===25?{x:.56,z:-2.55}:i===26?{x:0,z:-3.9}:i===27?{x:6.3,z:3.6}:{x:-5.7+(i-28)*2.8,z:6.1,turn:Math.PI});
-    const table=[[-4,-1.0],[4,-1.0],[-3.2,2.2],[3.2,2.2]][Math.floor(i/6)%4],angle=(i%6)*Math.PI/3;
-    layouts.cocktail.push(i<24?{x:table[0]+Math.cos(angle)*1.12,z:table[1]+Math.sin(angle)*1.12,turn:-angle-Math.PI/2}:i===27?{x:0,z:-5.95}:i===24?{x:-.9,z:-1.1}:i===25?{x:.9,z:-1.1}:{x:-5.0+(i-26)*1.35,z:-3.05,turn:.2});
-    const dx=-4.3+(i%7)*1.40+(random()-.5)*.25,dz=-2.2+Math.floor(i/7)*1.18;
-    layouts.party.push(i===27?{x:0,z:-5.15}:i===24?{x:-.7,z:-.8}:i===25?{x:.7,z:-.8}:{x:Math.abs(dx)<1.15&&dz>1.4?dx+(dx<0?-1.6:1.6):dx,z:dz,turn:(random()-.5)*1.3});
+    // Keep seating groups on their side of the aisle, instead of crossing the full crowd.
+    const table=[[-4,-1.0],[4,-1.0],[-3.2,2.2],[3.2,2.2]][(row<2?0:2)+(side>0?1:0)],angle=((row%2)*3+col)*Math.PI/3;
+    layouts.cocktail.push(i<24?{x:table[0]+Math.cos(angle)*1.12,z:table[1]+Math.sin(angle)*1.12,turn:-angle-Math.PI/2}:i===27?{x:0,z:-4.35}:i===24?{x:-.9,z:-1.1}:i===25?{x:.9,z:-1.1}:{x:-5.0+(i-26)*1.35,z:-3.05,turn:.2});
+    const dx=i<24?side*(1.3+col*1.4)+(random()-.5)*.16:-4.3+(i%7)*1.40+(random()-.5)*.25,dz=i<24?-1.9+row*1.20:-2.2+Math.floor(i/7)*1.18;
+    layouts.party.push(i===27?{x:0,z:-4.25}:i===24?{x:-.7,z:-.8}:i===25?{x:.7,z:-.8}:{x:Math.abs(dx)<1.15&&dz>1.4?dx+(dx<0?-1.6:1.6):dx,z:dz,turn:(random()-.5)*1.3});
   }
   const actors=Array.from({length:33},(_,i)=>({id:`guest-${i}`,x:0,z:0,turn:0,seated:0,dj:i===27,dress:i===24||(i<24&&i%3===1),color:i===24?0xffffff:i===25?0x28313d:undefined,height:i===27?1.1:undefined,layouts:SCENES.map(name=>({...layouts[name][i]}))}));
   actors.forEach(g=>{const base=g.layouts[0].turn??0;g.layouts.forEach(p=>p.turn=base+Math.atan2(Math.sin((p.turn??0)-base),Math.cos((p.turn??0)-base)));});
-  const crowdUpdate=people(shared,actors,'shared');
-  const seats=actors.slice(0,24).map((g,i)=>{const object=chair(shared,g.layouts[0].x,g.layouts[0].z);object.userData.dynamic=true;object.name=`Persistent chair ${i}`;return {object,layouts:[{...g.layouts[0],turn:0},{x:i%2?-6.45:6.45,z:-3.3+Math.floor(i/2)*.58,turn:i%2?-Math.PI/2:Math.PI/2},{x:i%2?-6.55:6.55,z:-3.3+Math.floor(i/2)*.58,turn:i%2?-Math.PI/2:Math.PI/2}]};});
+  const crowdUpdate=people(shared,actors,'shared'),solver=new CrowdSolver(actors),targets=actors.map(()=>({x:0,z:0}));
+  const seats=actors.slice(0,24).map((g,i)=>{const object=chair(shared,g.layouts[0].x,g.layouts[0].z);object.userData.dynamic=true;object.name=`Persistent chair ${i}`;const side=g.layouts[0].x<0?-1:1,rank=Math.floor(i/6)*3+i%3;return {object,layouts:[{...g.layouts[0],turn:0},{x:side*6.45,z:-3.3+rank*.58,turn:side*Math.PI/2},{x:side*6.55,z:-3.3+rank*.58,turn:side*Math.PI/2}]};});
   const tables=[],glassGeometry=new THREE.LatheGeometry([new THREE.Vector2(.001,0),new THREE.Vector2(.025,.015),new THREE.Vector2(.052,.045),new THREE.Vector2(.070,.11),new THREE.Vector2(.064,.18)],16);
   for(let i=0;i<4;i++){
     const object=new THREE.Group();shared.add(object);object.name=`Persistent table ${i}`;const stem=cylinder(object,palette.gold,0,.65,0,.055,1.3),top=cylinder(object,palette.cream,0,1.32,0,.68,.075);cylinder(object,palette.gold,0,.04,0,.44,.075);
     const glasses=new THREE.Group();object.add(glasses);for(let j=0;j<4;j++){const x=Math.cos(j*1.57)*.32,z=Math.sin(j*1.57)*.32;cylinder(glasses,palette.gold,x,1.41,z,.015,.15);mesh(glasses,glassGeometry,palette.glass,[x,1.48,z]);}
     const decoration=new THREE.Group();object.add(decoration);const vase=cylinder(decoration,palette.cream,0,1.42,0,.085,.20);for(let j=0;j<7;j++){const a=j*2.4;sphere(decoration,j%3?palette.ivory:palette.leaf,Math.cos(a)*.09,1.58+Math.sin(a)*.04,Math.sin(a)*.09,.075);}
     const candle=sphere(decoration,palette.peach,.2,1.40,.1,.035);cylinder(decoration,palette.glass,.2,1.37,.1,.07,.10);
-    tables.push({object,stem,top,glasses,vase,candle,decoration,layouts:[{x:i%2?-5.45:5.45,z:i<2?-3.2:5.4},{x:[-4,4,-3.2,3.2][i],z:[-1,-1,2.2,2.2][i]},{x:i%2?-5.8:5.8,z:i<2?-2.7:2.6}]});
+    tables.push({object,stem,top,glasses,vase,candle,decoration,layouts:[{x:i%2?5.45:-5.45,z:i<2?-3.2:4.7},{x:[-4,4,-3.2,3.2][i],z:[-1,-1,2.2,2.2][i]},{x:i%2?5.8:-5.8,z:i<2?-2.7:2.6}]});
   }
   const booth=new THREE.Group();booth.name='Persistent DJ console';shared.add(booth);
   box(booth,palette.darkWood,0,.81,0,3.40,1.55,1.1);box(booth,palette.metal,0,1.63,0,3.6,.13,1.25);
@@ -172,7 +174,7 @@ export async function createWorlds({yieldToMain=false}={}) {
   const speakerObjects=[];
   for(let i=0;i<4;i++){const holder=new THREE.Group();holder.name=i<2?'Main wireless audio system':'Additional sound setup';shared.add(holder);const cones=speaker(holder,0,0,i>=2);const side=i%2?1:-1;const position=i<2?[{x:side*4.7,z:-3.4},{x:side*5.6,z:-4.5},{x:side*5.6,z:-3.7}]:[{x:side*6.6,z:5.2},{x:side*6.8,z:3.8},{x:side*6.8,z:3.8}];speakerObjects.push({holder,cones,layouts:position,extra:i>=2,scale:0});}
   const microphones=[];
-  for(let i=0;i<2;i++){const group=new THREE.Group();group.name=i?'Additional wireless microphone':'Wireless microphone';shared.add(group);cylinder(group,palette.black,0,.86,0,.025,1.72);cylinder(group,palette.metal,0,.015,0,.24,.035);const mic=new THREE.Group();mic.position.set(0,1.74,0);mic.rotation.z=-.45;group.add(mic);cylinder(mic,palette.black,0,0,0,.028,.21);sphere(mic,palette.metal,0,.15,0,.052);box(mic,palette.cyan,0,.012,.03,.012,.023,.004);microphones.push({group,scale:0,layouts:i?[{x:.95,z:-2.55},{x:2.5,z:-5.0},{x:1.85,z:-3.7}]:[{x:0,z:-3.38},{x:-2.5,z:-5.0},{x:-1.85,z:-3.7}]});}
+  for(let i=0;i<2;i++){const group=new THREE.Group();group.name=i?'Additional wireless microphone':'Wireless microphone';shared.add(group);cylinder(group,palette.black,0,.86,0,.025,1.72);cylinder(group,palette.metal,0,.015,0,.24,.035);const mic=new THREE.Group();mic.position.set(0,1.74,0);mic.rotation.z=-.45;group.add(mic);cylinder(mic,palette.black,0,0,0,.028,.21);sphere(mic,palette.metal,0,.15,0,.052);box(mic,palette.cyan,0,.012,.03,.012,.023,.004);microphones.push({group,scale:0,layouts:i?[{x:.95,z:-2.55},{x:2.9,z:-4.2},{x:1.85,z:-3.7}]:[{x:0,z:-3.38},{x:-2.9,z:-4.2},{x:-1.85,z:-3.7}]});}
   const receiver=box(booth,palette.black,1.15,1.84,-.32,.52,.11,.32);for(const x of [.95,1.36])cylinder(booth,palette.black,x,2.02,-.45,.006,.32);
   const disco=mesh(pavilion,new THREE.IcosahedronGeometry(.40,3),material(0xa8c2dd,{metalness:1,roughness:.09}),[0,3.62,-.4]);disco.userData.dynamic=true;cylinder(pavilion,palette.metal,0,4.15,-.4,.012,.68);
   const partyAccents=new THREE.Group();partyAccents.userData.dynamic=true;pavilion.add(partyAccents);const lights=[],spotlights=[];
@@ -195,18 +197,32 @@ export async function createWorlds({yieldToMain=false}={}) {
   tables.forEach(table=>{table.stem.userData.dynamic=true;table.top.userData.dynamic=true;table.glasses.userData.dynamic=true;table.decoration.userData.dynamic=true;batchProp(table.glasses,true);batchProp(table.decoration,true);batchProp(table.object);});
   receiver.userData.dynamic=true;batchProp(booth);
   speakerObjects.forEach(s=>batchProp(s.holder));microphones.forEach(m=>batchProp(m.group));
+  const obstacles=[],furnitureOffsets=new Map();
   let selectedTier=1;
-  function setTier(index){selectedTier=tiers[index]?index:1;}
-  function update(time,beat,pointer,drop,weights,dt=1/30){
+  function setTier(index){selectedTier=tiers[index]?index:1;solver.invalidate();}
+  function update(time,beat,pointer,drop,weights,dt=1/30,instant=false){
    const day=weights[1],night=weights[2],beachWeight=day+night,nightMix=beachWeight>1e-8?night/beachWeight:0;
-   actors.forEach(g=>{for(const key of ['x','z','turn','seated'])g[key]=weighted(g.layouts.map(p=>p[key]??0),weights);});crowdUpdate(time,beat,weights);
-   seats.forEach((seat,i)=>{move(seat.object,seat.layouts,weights);seat.object.updateMatrix();chairInstances.forEach(object=>object.setMatrixAt(i,seat.object.matrix));});chairInstances.forEach(object=>object.instanceMatrix.needsUpdate=true);
+   actors.forEach((g,i)=>{for(const key of ['x','z'])targets[i][key]=weighted(g.layouts.map(p=>p[key]??0),weights);for(const key of ['turn','seated'])g[key]=weighted(g.layouts.map(p=>p[key]??0),weights);});
+   seats.forEach(seat=>move(seat.object,seat.layouts,weights));
    tables.forEach(table=>{move(table.object,table.layouts,weights);const height=weighted([1.32,1.32,.82],weights),ratio=height/1.32;table.stem.scale.y=1.3*ratio;table.stem.position.y=.65*ratio;table.top.position.y=height;table.glasses.position.y=height-1.32;table.glasses.scale.setScalar(Math.max(.001,beachWeight));table.decoration.position.y=height-1.32;});
-   move(booth,[{x:6.3,z:4.2},{x:0,z:-5.30},{x:0,z:-4.5}],weights);
+   move(booth,[{x:6.3,z:4.2},{x:0,z:-3.5},{x:0,z:-3.25}],weights);
    const coverage=SCENES.reduce((sum,name,i)=>sum+(audioProfile(selectedTier,name).covered?weights[i]:0),0),damp=dt===0?1:1-Math.exp(-dt*8);booth.scale.setScalar(Math.max(.0001,weighted([.52,.72,1],weights)*coverage));booth.visible=coverage>.002;
    speakerObjects.forEach(s=>{move(s.holder,s.layouts,weights);const target=coverage*(s.extra&&selectedTier!==2?0:1);s.scale=THREE.MathUtils.lerp(s.scale,target,damp);s.holder.scale.setScalar(Math.max(.0001,s.scale*weighted([.76,.86,1],weights)));s.holder.visible=s.scale>.002;s.cones.forEach(c=>c.scale.z=.2+beat*night*.028);});
    microphones.forEach((m,i)=>{move(m.group,m.layouts,weights);m.scale=THREE.MathUtils.lerp(m.scale,coverage*(i&&selectedTier!==2?0:1),damp);m.group.scale.setScalar(Math.max(.0001,m.scale));m.group.visible=m.scale>.002;});
 
+   obstacles.length=0;
+   const furnitureMobility=instant?0:Math.sin(Math.PI*weights[0])**2*.75;
+   const addFurniture=(object,shape)=>{let offset=furnitureOffsets.get(object);if(!offset){offset={x:0,z:0};furnitureOffsets.set(object,offset);}const decay=instant?0:Math.exp(-dt*5);offset.x*=decay;offset.z*=decay;const targetX=object.position.x,targetZ=object.position.z;obstacles.push({...shape,x:targetX+offset.x,z:targetZ+offset.z,weight:1,mobility:furnitureMobility,object,targetX,targetZ,offset});};
+   const rectangle=(object,hx,hz,owner=-1,weight=1)=>{obstacles.push({kind:'box',x:object.position.x,z:object.position.z,hx:hx*object.scale.x,hz:hz*object.scale.z,cos:Math.cos(object.rotation.y),sin:Math.sin(object.rotation.y),owner,weight});};
+   seats.forEach((seat,i)=>addFurniture(seat.object,{kind:'box',hx:.29,hz:.32,cos:Math.cos(seat.object.rotation.y),sin:Math.sin(seat.object.rotation.y),owner:i}));tables.forEach(table=>addFurniture(table.object,{kind:'circle',radius:.68}));
+   if(booth.visible)rectangle(booth,1.70,.55);speakerObjects.forEach(s=>{if(s.holder.visible)rectangle(s.holder,.66,.55);});microphones.forEach(m=>{if(m.group.visible)obstacles.push({kind:'circle',x:m.group.position.x,z:m.group.position.z,radius:.13*m.scale,weight:1});});
+   obstacles.push({kind:'box',x:0,z:-5.45,hx:2.95,hz:.60,cos:1,sin:0,weight:beachWeight},{kind:'circle',x:3.35,z:-5.4,radius:.72,weight:weights[0]});
+   for(const x of [-7.7,7.7])for(const z of [-6,-.5,5])obstacles.push({kind:'circle',x,z,radius:.20,weight:beachWeight});
+   solver.bounds.x=7.1+beachWeight*1.1;solver.bounds.maxZ=7.1-beachWeight*1.15;
+   solver.step(targets,obstacles,dt,{instant,key:weights.join(',')+':'+selectedTier});
+   obstacles.forEach(o=>{if(o.object){o.offset.x=o.x-o.targetX;o.offset.z=o.z-o.targetZ;o.object.position.x=o.x;o.object.position.z=o.z;}});
+   seats.forEach((seat,i)=>{seat.object.updateMatrix();chairInstances.forEach(object=>object.setMatrixAt(i,seat.object.matrix));});chairInstances.forEach(object=>object.instanceMatrix.needsUpdate=true);
+   actors.forEach((g,i)=>{g.x=solver.x[i];g.z=solver.z[i];});crowdUpdate(time,beat,weights);
    receiver.visible=coverage>.002;
    disco.rotation.y=time*.26;lights.forEach(({pivot,mat},i)=>{pivot.rotation.z=Math.sin(time*.52+i)*.38+pointer.x*.16;pivot.rotation.x=.34+Math.cos(time*.35+i*.7)*.18+pointer.y*.10;mat.opacity=.022*nightMix;});spotlights.forEach((spot,i)=>{spot.target.position.set((i?2:-2)+pointer.x*2+Math.sin(time*.4+i),.2,-.3+pointer.y);spot.intensity=nightMix*(80+beat*35);});
    for(let i=0;i<16;i++){dummy.position.set(-1.15+i*.15,.85,.563);dummy.rotation.set(0,0,0);dummy.scale.set(.035,.3*(.25+night*(Math.abs(Math.sin(time*3.4+i*.6))*1.5+beat*.4)),.016);dummy.updateMatrix();equalizer.setMatrixAt(i,dummy.matrix);}equalizer.instanceMatrix.needsUpdate=true;
@@ -216,11 +232,11 @@ export async function createWorlds({yieldToMain=false}={}) {
   }
   const interiorProfile={azimuth:-.045,elevation:.065,radius:5.4,lookY:1.45,lookZ:-2.1,fov:65,interior:1};
   const worlds={
-   ceremony:{group:ceremony,guests:actors.length,profile:{azimuth:.035,elevation:.10,radius:24,lookY:5,lookZ:-1.0,fov:52,interior:0},landmark:ceremonyPlace.tower,terrain:ceremonyPlace.terrain},
+   ceremony:{group:ceremony,guests:actors.length,profile:{azimuth:.025,elevation:.035,radius:13.2,lookY:2.45,lookZ:-2.4,fov:58,interior:.35},landmark:ceremonyPlace.tower,terrain:ceremonyPlace.terrain},
    cocktail:{group:pavilion,guests:actors.length,profile:{...interiorProfile},pavilion:beach},
    party:{group:pavilion,guests:actors.length,profile:{...interiorProfile},pavilion:beach}
   };
-  const rig={group:shared,pavilion,actors,seats,chairInstances,tables,speakers:speakerObjects,microphones,update,setTier,getTier:()=>selectedTier,
+  const rig={group:shared,pavilion,actors,solver,obstacles,seats,chairInstances,tables,speakers:speakerObjects,microphones,update,setTier,getTier:()=>selectedTier,
    showEnvironment(name){ceremony.visible=name==='ceremony';pavilion.visible=name!=='ceremony';},
    syncVisibility(weights){ceremony.visible=weights[0]>1e-5;pavilion.visible=weights[1]+weights[2]>1e-5;},
    environmentDome(name){const dome=(name==='ceremony'?ceremonyPlace.dome:beach.dome).clone();dome.material=dome.material.clone();if(name!=='ceremony'){const night=name==='party';dome.material.uniforms.horizon.value.copy(night?nightHorizon:dayHorizon);dome.material.uniforms.zenith.value.copy(night?nightZenith:dayZenith);dome.material.uniforms.night.value=night?1:0;}return dome;}
@@ -233,6 +249,6 @@ export async function createWorlds({yieldToMain=false}={}) {
      const key=object.material.uuid+':'+object.castShadow;if(!batches.has(key))batches.set(key,{material:object.material,shadow:object.castShadow,geometries:[]});const geometry=object.geometry.index?object.geometry.toNonIndexed():object.geometry.clone();geometry.applyMatrix4(object.matrixWorld);batches.get(key).geometries.push(geometry);originals.push(object);});
     for(const batch of batches.values()){await yieldWork();const geometry=mergeGeometries(batch.geometries,false);if(!geometry)throw Error('Venue geometry could not be combined.');const object=new THREE.Mesh(geometry,batch.material);object.castShadow=batch.shadow;object.receiveShadow=true;group.add(object);batch.geometries.forEach(part=>part.dispose());}originals.forEach(object=>object.removeFromParent());group.userData.batchedParts=originals.length;
   }
-  update(0,0,new THREE.Vector2(),0,[1,0,0],0);
+  update(0,0,new THREE.Vector2(),0,[1,0,0],0,true);
   return worlds;
 }

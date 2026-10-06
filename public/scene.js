@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-refine';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261005-immersive';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261005-immersive';
+import { SCENES, smoothstep } from './blend.js?v=20261005-refine';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261005-refine';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -27,7 +28,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(46,1,.1,300);scene.fog=new THREE.FogExp2(0x111827,.021);
   const root=new THREE.Group();scene.add(root);
   const worlds=await createWorlds({yieldToMain:true});[...new Set(Object.values(worlds).map(world=>world.group))].forEach(group=>{root.add(group);group.visible=false;});root.add(worlds.rig.group);worlds.rig.setTier(initialTier);
-  let mode=worlds[initialMode]?initialMode:'ceremony';
+  let mode=resolvePhase(initialTier,worlds[initialMode]?initialMode:'ceremony');
   const transition=new SceneTransition(worlds,mode);
   function environment(){
     const generator=new THREE.PMREMGenerator(renderer),captures={};
@@ -123,10 +124,10 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
     const weights=transition.visualWeights();
     for(const property of ['azimuth','elevation','radius','lookY','lookZ','fov','interior']){const target=SCENES.reduce((sum,name,i)=>sum+worlds[name].profile[property]*weights[i],0);profile[property]=THREE.MathUtils.lerp(profile[property],target,damping);}
     const age=elapsed-dropStarted,drop=age>=0&&age<4.5?Math.sin(age/4.5*Math.PI):0;
-    const glide=transition.progress<1?Math.sin(transition.progress*Math.PI)*.35:0;const pose=cameraPose(profile,camera.aspect,smoothed,drag,elapsed,(mode==='party'?drop:0)+glide,introProgress);
+    const pose=cameraPose(profile,camera.aspect,smoothed,drag,elapsed,mode==='party'?drop:0,introProgress);
     targetPosition.set(pose.x,pose.y,pose.z);camera.position.lerp(targetPosition,damping);if(Math.abs(camera.fov-pose.fov)>.01){camera.fov=pose.fov;camera.updateProjectionMatrix();}lookTarget.set(pose.lookX,pose.lookY,pose.lookZ);lookAt.lerp(lookTarget,damping);camera.lookAt(lookAt);camera.updateMatrixWorld();
     crowdClock+=dt;
-    if(crowdClock>=1/30||!moving){worlds.rig.update(elapsed,audioBeat,smoothed,drop,weights,moving?crowdClock:0);crowdClock=0;}
+    if(!coarse||crowdClock>=1/30||!moving){worlds.rig.update(elapsed,audioBeat,smoothed,drop,weights,moving?crowdClock:0,!moving);crowdClock=0;}
     rayPointer.set(smoothed.x,-smoothed.y);raycaster.setFromCamera(rayPointer,camera);raycaster.ray.intersectPlane(ground,hit);
     hit.x=THREE.MathUtils.clamp(hit.x,-10,10);hit.z=THREE.MathUtils.clamp(hit.z,-7,18);
     cursorLight.position.x=THREE.MathUtils.lerp(cursorLight.position.x,hit.x,damping);cursorLight.position.z=THREE.MathUtils.lerp(cursorLight.position.z,hit.z,damping);
@@ -166,9 +167,9 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   function scheduleNext(){if(!disposed&&!contextLost&&visible&&!document.hidden&&animationId===null)animationId=requestAnimationFrame(animate);}
   const initial=cameraPose(profile,camera.aspect,pointer,drag,0,0,introProgress);camera.fov=initial.fov;camera.updateProjectionMatrix();camera.position.set(initial.x,initial.y,initial.z);lookAt.set(initial.lookX,initial.lookY,initial.lookZ);camera.lookAt(lookAt);camera.updateMatrixWorld();
   function setMode(value){
-    if(!transition.select(value,moving))return;
+    if(!phaseAvailable(worlds.rig.getTier(),value)||!transition.select(value,moving))return false;
     cancelIntro();mode=value;dropStarted=-100;dragTarget.set(0,0);drag.set(0,0);
-    shell.dataset.scene=value;container.setAttribute('aria-label','Interactive imagined '+worlds[mode].group.name+' scene. Move your pointer or drag to orbit.');renderer.shadowMap.needsUpdate=true;needsRender=true;schedule();
+    shell.dataset.scene=value;container.setAttribute('aria-label','Interactive imagined '+worlds[mode].group.name+' scene. Move your pointer or drag to orbit.');renderer.shadowMap.needsUpdate=true;needsRender=true;schedule();return true;
   }
   function lost(event){event.preventDefault();contextLost=true;stop();shell.classList.remove('ready');shell.classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view temporarily unavailable';}
   function restored(){contextLost=false;Object.values(environmentTargets).forEach(target=>target.dispose());environmentTargets=environment();envMaterial.uniforms.a.value=environmentTargets.ceremony.texture;envMaterial.uniforms.b.value=environmentTargets.cocktail.texture;envMaterial.uniforms.c.value=environmentTargets.party.texture;lastEnvironmentWeights=[-1,-1,-1];Object.keys(shadowCache).forEach(name=>{shadowCache[name]?.dispose();delete shadowCache[name];});key.shadow.map=null;reflectionReady=false;resize();shell.classList.remove('unavailable');shell.classList.add('ready');schedule();}
@@ -176,11 +177,11 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   shell.dataset.scene=mode;
   // Precompile the two places and all persistent equipment before interactions.
   worlds.rig.setTier(2);
-  for(const name of ['ceremony','party']){const weights=SCENES.map(scene=>scene===name?1:0);worlds.rig.update(0,0,pointer,0,weights,0);worlds.rig.showEnvironment(name);applyLighting(weights);updateEnvironment(weights);renderer.setRenderTarget(null);await renderer.compileAsync(scene,camera);renderer.setRenderTarget(blendTargets[0]);await renderer.compileAsync(scene,camera);}
-  renderer.setRenderTarget(null);await renderer.compileAsync(dissolveScene,dissolveCamera);await renderer.compileAsync(envScene,envCamera);worlds.rig.setTier(initialTier);worlds.rig.update(0,0,pointer,0,transition.visualWeights(),0);updateEnvironment(transition.visualWeights());transition.syncVisibility();initialized=true;needsRender=true;schedule();
+  for(const name of ['ceremony','party']){const weights=SCENES.map(scene=>scene===name?1:0);worlds.rig.update(0,0,pointer,0,weights,0,true);worlds.rig.showEnvironment(name);applyLighting(weights);updateEnvironment(weights);renderer.setRenderTarget(null);await renderer.compileAsync(scene,camera);renderer.setRenderTarget(blendTargets[0]);await renderer.compileAsync(scene,camera);}
+  renderer.setRenderTarget(null);await renderer.compileAsync(dissolveScene,dissolveCamera);await renderer.compileAsync(envScene,envCamera);worlds.rig.setTier(initialTier);worlds.rig.update(0,0,pointer,0,transition.visualWeights(),0,true);updateEnvironment(transition.visualWeights());transition.syncVisibility();initialized=true;needsRender=true;schedule();
   return {
     setMode,
-    setTier(index){worlds.rig.setTier(index);needsRender=true;crowdClock=1;reflectionReady=false;renderer.shadowMap.needsUpdate=true;schedule();},
+    setTier(index){worlds.rig.setTier(index);const next=resolvePhase(index,mode);if(next!==mode)setMode(next);needsRender=true;crowdClock=1/30;reflectionReady=false;renderer.shadowMap.needsUpdate=true;schedule();return next;},
     setMotion(value){moving=value;needsRender=true;pointer.set(0,0);pointerInside=false;release();if(!value){cancelIntro();transition.finish();cursorMaterial.opacity=0;cursorRing.material.opacity=0;}renderer.shadowMap.needsUpdate=true;schedule();},
     setBeat(value){if(moving)audioBeat=value;},
     setScroll(){},

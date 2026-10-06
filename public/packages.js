@@ -8,3 +8,6 @@ export function audioProfile(index,mode){
  const tier=tiers[index]??tiers[1],covered=tier.coverage.includes(mode);
  return {covered,distributed:tier.distributed,additionalMics:tier.additionalMics,speakerPairs:covered?(tier.distributed?2:1):0,microphones:covered?(tier.additionalMics?2:1):0};
 }
+
+export const phaseAvailable=(index,mode)=>(tiers[index]??tiers[1]).coverage.includes(mode);
+export function resolvePhase(index,mode){const tier=tiers[index]??tiers[1];return tier.coverage.includes(mode)?mode:tier.coverage[tier.coverage.length-1];}

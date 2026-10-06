@@ -1,6 +1,6 @@
 export const SCENES=['ceremony','cocktail','party'];
-export const TRANSITION_SECONDS=1.8;
-export const smoothstep=t=>{const u=Math.max(0,Math.min(1,t));return u*u*(3-2*u);};
+export const TRANSITION_SECONDS=2.6;
+export const smoothstep=t=>{const u=Math.max(0,Math.min(1,t));return u*u*u*(u*(u*6-15)+10);};
 export function equalPowerMix(from,index,progress){
   const t=smoothstep(progress),dot=Math.max(-1,Math.min(1,from[index])),angle=Math.acos(dot);
   if(angle<1e-5)return SCENES.map((_,i)=>i===index?1:0);
