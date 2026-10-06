@@ -1,7 +1,7 @@
-import { mountComparison } from './comparison.js?v=20261005-refine';
-import { createSceneAudio } from './audio.js?v=20261005-refine';
-import { createMotionSystem } from './motion.js?v=20261005-refine';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-refine';
+import { mountComparison } from './comparison.js?v=20261005-mobile';
+import { createSceneAudio } from './audio.js?v=20261005-mobile';
+import { createMotionSystem } from './motion.js?v=20261005-mobile';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-mobile';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let room, audio, motion = !reducedMotion.matches, motionSystem, currentMode = 'ceremony';
 const comparison = mountComparison();
@@ -21,8 +21,8 @@ function changeMode(mode){
 }
 function updatePhaseControls(){document.querySelectorAll('[data-mode]').forEach(button=>{const available=phaseAvailable(comparison.getSelectedIndex(),button.dataset.mode);button.disabled=!available;button.setAttribute('aria-disabled',String(!available));button.title=available?'':`${button.textContent.trim()} is not included in the Reception package`;button.querySelector('.phase-lock').hidden=available;});}
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
-if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Tap a scene to explore';
-async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-refine');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,initialTier:comparison.getSelectedIndex(),intro:scrollY<150});room.setTier(comparison.getSelectedIndex());changeMode(resolvePhase(comparison.getSelectedIndex(),currentMode));room.setMotion(motion);const shell=document.querySelector('.stage-shell');shell.classList.add('ready');if(currentMode==='ceremony'&&scrollY<150&&motion)shell.classList.add('intro-active');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view unavailable on this device';document.getElementById('stage-hint').textContent='Explore the packages below';}}
+if(matchMedia('(pointer:coarse)').matches)document.getElementById('stage-hint').textContent='Swipe sideways to explore';
+async function initRoom(){try{const {createRoom}=await import('./scene.js?v=20261005-mobile');room=await createRoom(document.getElementById('stage'),{reducedMotion:!motion,initialMode:currentMode,initialTier:comparison.getSelectedIndex(),intro:scrollY<150});room.setTier(comparison.getSelectedIndex());changeMode(resolvePhase(comparison.getSelectedIndex(),currentMode));room.setMotion(motion);const shell=document.querySelector('.stage-shell');shell.classList.add('ready');if(currentMode==='ceremony'&&scrollY<150&&motion)shell.classList.add('intro-active');window.scsScene={stats:()=>room.getStats()};}catch(error){console.warn('3D unavailable.',error);document.querySelector('.stage-shell').classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view unavailable on this device';document.getElementById('stage-hint').textContent='Explore the packages below';}}
 document.getElementById('comparison-board').addEventListener('tierchange',event=>{room?.setTier(event.detail.index);updateGearLabel();updatePhaseControls();const next=resolvePhase(event.detail.index,currentMode);if(next!==currentMode)changeMode(next);});
 function updateGearLabel(){const selected=comparison.getSelectedIndex();document.getElementById('gear-caption').textContent=selected===null?'Illustrative equipment':comparison.getSelected().title+' · illustrated gear';}
 updateGearLabel();updatePhaseControls();

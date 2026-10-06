@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-refine';
+import { phaseAvailable, resolvePhase } from './packages.js?v=20261005-mobile';
 import { Reflector } from './vendor/Reflector.js';
-import { SCENES, smoothstep } from './blend.js?v=20261005-refine';
-import { createWorlds, SceneTransition } from './worlds.js?v=20261005-refine';
+import { SCENES, smoothstep } from './blend.js?v=20261005-mobile';
+import { createWorlds, SceneTransition } from './worlds.js?v=20261005-mobile';
+import { TouchOrbitIntent } from './touch-orbit.js?v=20261005-mobile';
 
 export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
   const pixels=coarse?300000:600000;
@@ -10,12 +11,15 @@ export function renderRatio(width,height,dpr=1,coarse=false,quality=1){
 }
 
 export function cameraPose(profile,aspect,pointer,drag,time,drop=0,intro=1) {
-  const interior=profile.interior??0,framing=THREE.MathUtils.lerp(Math.max(.86,.95/Math.max(.70,aspect)),1,interior);
+  const interior=profile.interior??0,framing=THREE.MathUtils.lerp(Math.max(.86,.95/Math.max(.95,aspect)),1,interior);
+  const horizontalFov=THREE.MathUtils.degToRad(THREE.MathUtils.lerp(40,64,interior));
+  const portraitFov=THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(horizontalFov/2)/Math.max(.3,aspect)));
+  const fov=Math.max(profile.fov??46,Math.min(88,portraitFov));
   const reveal=1-smoothstep(intro);
   const radius=(profile.radius-drop*THREE.MathUtils.lerp(2.4,.55,interior)+reveal*3.4)*framing;
   const azimuth=THREE.MathUtils.clamp(profile.azimuth-reveal*.065+pointer.x*.22+drag.x+Math.sin(time*.19)*.025,-.62,.62);
   const elevation=THREE.MathUtils.clamp(profile.elevation+reveal*.025-pointer.y*.11+drag.y-drop*.025,.02,.32);
-  return {x:Math.sin(azimuth)*Math.cos(elevation)*radius,y:Math.sin(elevation)*radius+profile.lookY,z:Math.cos(azimuth)*Math.cos(elevation)*radius,lookX:pointer.x*.55,lookY:profile.lookY+reveal*.70-pointer.y*.15,lookZ:(profile.lookZ??-.8)-reveal*.85+pointer.y*.3,fov:(profile.fov??46)+Math.max(0,1-aspect)*12*interior};
+  return {x:Math.sin(azimuth)*Math.cos(elevation)*radius,y:Math.sin(elevation)*radius+profile.lookY,z:Math.cos(azimuth)*Math.cos(elevation)*radius,lookX:pointer.x*.55,lookY:profile.lookY+reveal*.70-pointer.y*.15,lookZ:(profile.lookZ??-.8)-reveal*.85+pointer.y*.3,fov};
 }
 
 export async function createRoom(container,{reducedMotion=false,initialMode='ceremony',initialTier=1,intro=true}={}) {
@@ -86,6 +90,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   let introProgress=intro&&!reducedMotion&&mode==='ceremony'?0:1,introAge=0;
   let elapsed=0,last=performance.now(),audioBeat=0,dropStarted=-100,pointerInside=false,particleIndex=0,emission=0;
   let dragging=false,pointerId,lastX=0,lastY=0;
+  const touchOrbit=new TouchOrbitIntent();
   const pointer=new THREE.Vector2(),smoothed=new THREE.Vector2(),drag=new THREE.Vector2(),dragTarget=new THREE.Vector2();
   const targetPosition=new THREE.Vector3(),lookTarget=new THREE.Vector3(),lookAt=new THREE.Vector3(0,1.65,-.8),raycaster=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),-.07),hit=new THREE.Vector3(),rayPointer=new THREE.Vector2();
   let profile={...worlds[mode].profile};
@@ -103,15 +108,20 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   window.addEventListener('scroll',invalidateBounds,{passive:true});
   function cancelIntro(){introProgress=1;shell.classList.add('intro-dismissed');}
   function point(event){
-    if(!moving||event.pointerType==='touch')return;
+    if(!moving)return;
+    if(event.pointerType==='touch'){
+      const gesture=touchOrbit.move(event.pointerId,event.clientX,event.clientY);if(!gesture)return;
+      if(gesture.activated){cancelIntro();dragging=true;pointerId=event.pointerId;container.setPointerCapture(pointerId);shell.classList.add('is-orbiting');}
+      dragTarget.x=THREE.MathUtils.clamp(dragTarget.x-gesture.delta*.004,-.38,.38);lastX=event.clientX;lastY=event.clientY;pointerInside=false;pointer.set(0,0);return;
+    }
     if(introProgress<1)cancelIntro();
     const rect=bounds??=container.getBoundingClientRect();pointer.set(THREE.MathUtils.clamp((event.clientX-rect.left)/rect.width*2-1,-1,1),THREE.MathUtils.clamp((event.clientY-rect.top)/rect.height*2-1,-1,1));
     if(dragging){dragTarget.x=THREE.MathUtils.clamp(dragTarget.x-(event.clientX-lastX)*.005,-.38,.38);dragTarget.y=THREE.MathUtils.clamp(dragTarget.y+(event.clientY-lastY)*.0035,-.055,.08);}
     lastX=event.clientX;lastY=event.clientY;pointerInside=true;
   }
   function leave(){if(!dragging){pointerInside=false;pointer.set(0,0);}}
-  function down(event){cancelIntro();if(!moving||event.pointerType==='touch'||event.button!==0)return;dragging=true;pointerId=event.pointerId;lastX=event.clientX;lastY=event.clientY;container.setPointerCapture(event.pointerId);shell.classList.add('is-orbiting');}
-  function release(){if(pointerId!==undefined&&container.hasPointerCapture(pointerId))container.releasePointerCapture(pointerId);pointerId=undefined;dragging=false;shell.classList.remove('is-orbiting');const rect=container.getBoundingClientRect();if(lastX<rect.left||lastX>rect.right||lastY<rect.top||lastY>rect.bottom)leave();}
+  function down(event){if(!moving)return;if(event.pointerType==='touch'){if(event.isPrimary!==false)touchOrbit.begin(event.pointerId,event.clientX,event.clientY);return;}cancelIntro();if(event.button!==0)return;dragging=true;pointerId=event.pointerId;lastX=event.clientX;lastY=event.clientY;container.setPointerCapture(event.pointerId);shell.classList.add('is-orbiting');}
+  function release(event){const active=pointerId??touchOrbit.id;if(event?.pointerId!==undefined&&active!==undefined&&event.pointerId!==active)return;if(pointerId!==undefined&&container.hasPointerCapture(pointerId))container.releasePointerCapture(pointerId);pointerId=undefined;dragging=false;touchOrbit.reset();shell.classList.remove('is-orbiting');const rect=container.getBoundingClientRect();if(lastX<rect.left||lastX>rect.right||lastY<rect.top||lastY>rect.bottom)leave();}
   container.addEventListener('pointermove',point);container.addEventListener('pointerleave',leave);container.addEventListener('pointerdown',down);container.addEventListener('pointerup',release);container.addEventListener('pointercancel',release);
   function animate(now){
     animationId=null;
@@ -168,7 +178,7 @@ export async function createRoom(container,{reducedMotion=false,initialMode='cer
   const initial=cameraPose(profile,camera.aspect,pointer,drag,0,0,introProgress);camera.fov=initial.fov;camera.updateProjectionMatrix();camera.position.set(initial.x,initial.y,initial.z);lookAt.set(initial.lookX,initial.lookY,initial.lookZ);camera.lookAt(lookAt);camera.updateMatrixWorld();
   function setMode(value){
     if(!phaseAvailable(worlds.rig.getTier(),value)||!transition.select(value,moving))return false;
-    cancelIntro();mode=value;dropStarted=-100;dragTarget.set(0,0);drag.set(0,0);
+    cancelIntro();release();mode=value;dropStarted=-100;dragTarget.set(0,0);drag.set(0,0);
     shell.dataset.scene=value;container.setAttribute('aria-label','Interactive imagined '+worlds[mode].group.name+' scene. Move your pointer or drag to orbit.');renderer.shadowMap.needsUpdate=true;needsRender=true;schedule();return true;
   }
   function lost(event){event.preventDefault();contextLost=true;stop();shell.classList.remove('ready');shell.classList.add('unavailable');document.getElementById('stage-loading').textContent='3D view temporarily unavailable';}
