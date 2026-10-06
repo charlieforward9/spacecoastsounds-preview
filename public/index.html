@@ -9,11 +9,11 @@
   <title>Space Coast Sounds — Wedding DJ</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
-  <link rel="stylesheet" href="./motion.css?v=20261005-stagefirst">
-  <link rel="stylesheet" href="./experience.css?v=20261005-stagefirst">
+  <link rel="stylesheet" href="./motion.css?v=20261005-sound">
+  <link rel="stylesheet" href="./experience.css?v=20261005-sound">
   <script defer src="./vendor/gsap/gsap.min.js"></script>
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
-  <script type="module" src="./app.js?v=20261005-stagefirst"></script>
+  <script type="module" src="./app.js?v=20261005-sound"></script>
 </head>
 <body>
   <div class="room-cursor" aria-hidden="true"><i></i><span>DRAG</span></div>
@@ -29,28 +29,27 @@
       <div class="stage-shell" id="experience" data-scene="party">
         <div class="stage-aura" aria-hidden="true"></div><div class="drop-ring" aria-hidden="true"></div>
         <div class="stage-top"><span class="stage-label" id="scene-name">DANCE FLOOR</span></div>
-        <div id="stage" role="img" aria-label="Interactive imagined dance floor. Move your mouse or drag to orbit."><img class="stage-fallback" data-src="./assets/venue-concept.png" alt="Imagined dance floor with a DJ booth, tower speakers, guests and colorful lighting"><div class="stage-loading" id="stage-loading">Setting the scene…</div></div>
+        <div id="stage" role="img" aria-label="Interactive imagined dance floor. Move your mouse or drag to orbit."><div class="stage-loading" id="stage-loading">Setting the scene…</div></div>
         <button class="drop-button" id="drop-button" type="button" aria-label="Drop the beat and play original preview audio"><span class="drop-play" aria-hidden="true">▶</span><span>DROP THE BEAT</span><span class="drop-tempo">120 BPM</span></button>
         <div class="stage-controls">
           <div class="mode-switch" role="group" aria-label="Choose a scene"><button data-mode="ceremony" aria-pressed="false">Ceremony</button><button data-mode="cocktail" aria-pressed="false">Cocktail</button><button data-mode="party" aria-pressed="true">Dance floor</button></div>
-          <div class="scene-tools"><button id="sound-toggle" aria-pressed="false" aria-label="Play preview beat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span></button><button id="motion-toggle" aria-pressed="true" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
+          <div class="scene-tools"><button id="sound-toggle" aria-pressed="false" aria-label="Enable scene audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"/></svg><span>Tap for sound</span></button><button id="motion-toggle" aria-pressed="true" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button></div>
         </div>
         <p class="stage-note"><span id="stage-hint">Drag to explore</span><span>Imagined venues</span></p>
       </div>
     </section>
     <section class="packages section" id="packages" aria-labelledby="packages-title">
       <h2 id="packages-title" class="sr-only">Wedding packages</h2>
-      <div class="package-strip" id="package-strip">
-        <button type="button" class="package-tile" data-tier="0" aria-pressed="false"><span class="package-name">Reception</span><strong class="package-price">$800</strong><span class="package-hours">Up to 4 hours</span></button>
-        <button type="button" class="package-tile" data-tier="1" aria-pressed="true"><span class="package-name">Ceremony + Reception</span><strong class="package-price">$1,000</strong><span class="package-hours">Up to 6 hours</span></button>
-        <button type="button" class="package-tile" data-tier="2" aria-pressed="false"><span class="package-name">All-Day Audio</span><strong class="package-price">$1,400</strong><span class="package-hours">Up to 8 hours</span></button>
-      </div>
-      <details class="feature-details"><summary><span class="compare-label">Compare inclusions <i aria-hidden="true">+</i></span><span class="shared-inclusion">Setup + teardown included</span></summary>
-        <div class="comparison-board" id="comparison-board">
-          <div class="comparison-scroll"><table class="comparison-table"><caption class="sr-only">Package inclusions from the supplied sheet.</caption><thead id="comparison-head"></thead><tbody id="comparison-body"></tbody></table></div>
-          <p class="comparison-key">— Not listed on the package sheet.</p>
+      <div class="comparison-board" id="comparison-board">
+        <div class="package-strip" id="package-strip">
+          <article class="package-tile"><button type="button" class="package-choice" data-tier="0" aria-pressed="false"><span class="package-name">Reception</span><strong class="package-price">$800</strong><span class="package-hours">4 hours</span></button></article>
+          <article class="package-tile is-selected"><button type="button" class="package-choice" data-tier="1" aria-pressed="true"><span class="package-name">Ceremony + Reception</span><strong class="package-price">$1,000</strong><span class="package-hours">6 hours</span></button></article>
+          <article class="package-tile"><button type="button" class="package-choice" data-tier="2" aria-pressed="false"><span class="package-name">All-Day Audio</span><strong class="package-price">$1,400</strong><span class="package-hours">8 hours</span></button></article>
         </div>
-      </details>
+        <div class="matrix-intro"><span>Scroll for the details <span aria-hidden="true">↓</span></span><span>Setup + teardown included</span></div>
+        <div class="feature-matrix" id="comparison-body" role="group" aria-label="Package inclusions. Tap a row to expand."></div>
+        <p class="comparison-key">Hours shown are maximum coverage. — Not listed.</p>
+      </div>
     </section>
     <section class="contact section" id="contact" aria-labelledby="contact-title">
       <div class="contact-copy"><h2 id="contact-title">Your event.</h2></div>

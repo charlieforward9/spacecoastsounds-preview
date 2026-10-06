@@ -11,7 +11,7 @@ const port=Number(process.env.PORT||4173);
 const host=process.env.HOST||'127.0.0.1';
 const allowedOrigins=new Set(['https://charlieforward9.github.io',...(process.env.SCS_ALLOWED_ORIGINS||'').split(',').filter(Boolean)]);
 const rates=new Map();
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff2':'font/woff2','.ttf':'font/ttf','.txt':'text/plain; charset=utf-8'};
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.mp3':'audio/mpeg','.wav':'audio/wav','.md':'text/plain; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.woff2':'font/woff2','.ttf':'font/ttf','.txt':'text/plain; charset=utf-8'};
 
 function json(response,status,body){response.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});response.end(JSON.stringify(body));}
 function validOrigin(request){const origin=request.headers.origin;if(!origin)return false;try{const url=new URL(origin);return allowedOrigins.has(origin)||url.host===request.headers.host;}catch{return false;}}

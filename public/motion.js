@@ -5,8 +5,8 @@ export function createMotionSystem({isEnabled}) {
   let context,dropCleanup,introPlayed=false,cleanups=[];
   const listen=(element,event,handler)=>{element.addEventListener(event,handler);cleanups.push(()=>element.removeEventListener(event,handler));};
   board.addEventListener('tierchange',()=>{
-    if(!isEnabled()||!document.querySelector('.package-tile[aria-pressed=true]'))return;
-    gsap.fromTo('.package-tile[aria-pressed=true] .package-price',{y:5,opacity:.5},{y:0,opacity:1,duration:.3,ease:'power2.out',overwrite:true});
+    if(!isEnabled()||!document.querySelector('.package-tile.is-selected'))return;
+    gsap.fromTo('.package-tile.is-selected .package-price',{y:5,opacity:.5},{y:0,opacity:1,duration:.3,ease:'power2.out',overwrite:true});
   });
   function destroy(){
     dropCleanup?.kill();context?.revert();
